@@ -194,42 +194,18 @@ export default function AdminHome() {
                 backgroundGradientFrom: 'transparent',
                 backgroundGradientTo: 'transparent',
                 decimalPlaces: 0,
-                color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`,
-                labelColor: () => '#8E8E93',
+                color: (_opacity = 1) => `#22C55E`,
+                labelColor: () => "#8E8E93",
                 barPercentage: 0.6,
+                fillShadowGradient: "#22C55E",
+                fillShadowGradientFromOpacity: 1,
+                fillShadowGradientToOpacity: 1,
               }}
               style={styles.chart}
-              withInnerLines={true}
-              showValuesOnTopOfBars={false} yAxisLabel={''} yAxisSuffix={''}          />
+              withInnerLines={true} yAxisLabel={''} yAxisSuffix={''}              />
         </View>
       </View>
-
-      {/* Bottom spacing for navigation */}
-      <View style={styles.bottomSpacing} />
     </ScrollView>
-
-    {/* Bottom Navigation */}
-    <View style={styles.bottomNavigation}>
-      <TouchableOpacity style={styles.navItem}>
-        <Ionicons name="bar-chart" size={20} color="#2196F3" />
-        <Text style={[styles.navText, { color: '#2196F3' }]}>Dashboard</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.navItem}>
-        <Ionicons name="people-outline" size={20} color="#8E8E93" />
-        <Text style={styles.navText}>Users</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.navItem}>
-        <Ionicons name="calendar-outline" size={20} color="#8E8E93" />
-        <Text style={styles.navText}>Giao dịch</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.navItem}>
-        <Ionicons name="settings-outline" size={20} color="#8E8E93" />
-        <Text style={styles.navText}>Cài đặt</Text>
-      </TouchableOpacity>
-    </View>
   </SafeAreaView>
   );
 }

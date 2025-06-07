@@ -1,8 +1,9 @@
-import { Tabs } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Redirect, Tabs } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
-import { Redirect } from 'expo-router';
 
 export default function AdminLayout() {
 const { isAuthenticated, user } = useAuthStore();
@@ -23,15 +24,29 @@ if (!isAuthenticated) {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Admin Dashboard',
-          tabBarIcon: ({ color }) => <MaterialIcons name="dashboard" size={24} color={color} />,
+          title: 'Dashboard',
+          tabBarIcon: ({ color }) => <MaterialIcons name="bar-chart" size={24} color="black" />,
+        }}
+      />
+      <Tabs.Screen
+        name="users"
+        options={{
+          title: 'Users',
+          tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color="black" />,
+        }}
+      />
+      <Tabs.Screen
+        name="transaction"
+        options={{
+          title: 'Giao dịch',
+          tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color="black" />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Admin Profile',
-          tabBarIcon: ({ color }) => <MaterialIcons name="admin-panel-settings" size={24} color={color} />,
+          title: 'Setting',
+          tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color="black" />,
         }}
       />
     </Tabs>
