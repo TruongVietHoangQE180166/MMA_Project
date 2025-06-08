@@ -1,8 +1,9 @@
-import { Redirect } from 'expo-router';
-import { useAuthStore } from '../../store/authStore';
-import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import Entypo from '@expo/vector-icons/Entypo';
+import { Redirect, Tabs } from 'expo-router';
+import React from 'react';
 import { COLORS } from '../../constants/theme';
+import { useAuthStore } from '../../store/authStore';
 
 export default function UserLayout() {
   const { isAuthenticated, user } = useAuthStore();
@@ -29,6 +30,13 @@ export default function UserLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => <MaterialIcons name="home" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="finance"
+        options={{
+          title: 'Finance',
+          tabBarIcon: ({ color }) => <Entypo name="wallet" size={23} color={color} />,
         }}
       />
       <Tabs.Screen
