@@ -1,5 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import Entypo from '@expo/vector-icons/Entypo';
+import { FontAwesome6, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
 import { COLORS } from '../../constants/theme';
@@ -23,6 +22,7 @@ export default function UserLayout() {
       screenOptions={{
         tabBarActiveTintColor: COLORS.primary,
         headerShown: false,
+        tabBarLabelPosition: 'below-icon',
       }}
     >
       <Tabs.Screen
@@ -36,14 +36,21 @@ export default function UserLayout() {
         name="finance"
         options={{
           title: 'Finance',
-          tabBarIcon: ({ color }) => <Entypo name="wallet" size={23} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="wallet" size={23} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="statistical"
+        options={{
+          title: 'Statistical',
+          tabBarIcon: ({ color }) => <Ionicons name="stats-chart-outline" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <MaterialIcons name="person" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome6 name="user" size={23} color={color} />,
         }}
       />
     </Tabs>
