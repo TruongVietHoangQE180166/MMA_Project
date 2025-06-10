@@ -17,7 +17,7 @@ if (!isAuthenticated) {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.danger,
+        tabBarActiveTintColor: COLORS.skyBlue,
         headerShown: false,
       }}
     >
@@ -25,28 +25,28 @@ if (!isAuthenticated) {
         name="home"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color }) => <MaterialIcons name="bar-chart" size={24} color="black" />,
+          tabBarIcon: ({ color }) => <MaterialIcons name="bar-chart" size={24} color="#00aff0" />,
         }}
       />
       <Tabs.Screen
         name="users"
         options={{
           title: 'Users',
-          tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color="black" />,
+          tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color="#00aff0" />,
         }}
       />
       <Tabs.Screen
         name="transaction"
         options={{
           title: 'Giao dịch',
-          tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color="black" />,
+          tabBarIcon: ({ color }) => <AntDesign name="user" size={24} color="#00aff0" />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Setting',
-          tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color="black" />,
+          tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color="#00aff0" />,
         }}
       />
     </Tabs>

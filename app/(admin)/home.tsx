@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Dimensions, Image, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { BarChart, LineChart } from 'react-native-chart-kit';
@@ -36,7 +36,7 @@ export default function AdminHome() {
         
         <View style={styles.statBox}>
           <View style={styles.statHeader}>
-            <Ionicons name="cash" size={24} color="#4CAF50" />
+            <FontAwesome5 name="money-bill-wave" size={24} color='#00FF00' />
             <Text style={styles.statPercentage}>+8%</Text>
           </View>
           <Text style={styles.statLabel}>Doanh thu</Text>
@@ -45,7 +45,7 @@ export default function AdminHome() {
         
         <View style={styles.statBox}>
           <View style={styles.statHeader}>
-            <Ionicons name="folder-open-outline" size={24} color="#FF9800" />
+            <Ionicons name="wallet-outline" size={24} color="orange" />
             <Text style={styles.statNumber12}>12</Text>
           </View>
           <Text style={styles.statLabel}>Yêu cầu rút tiền</Text>
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginBottom: 16,
     color: COLORS.dark,
   },
