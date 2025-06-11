@@ -1,15 +1,6 @@
 import { AntDesign, Foundation, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import {
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Image, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View, } from 'react-native';
 
 const HistoryTab = () => {
   const [activeTab, setActiveTab] = useState('Ngày');
@@ -50,10 +41,7 @@ const HistoryTab = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#E0F2FE" />
-
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-
-        {/* Header riêng biệt */}
         <View style={styles.headerContainer}>
           <Image
             source={require("../../assets/images/logo.png")}
@@ -62,10 +50,8 @@ const HistoryTab = () => {
           <Text style={styles.title}>Lịch sử học tập</Text>
         </View>
 
-        {/* Card đầu tiên - Stats + Chart */}
-        <View style={styles.mainCard}>
-
-          {/* Stats - 3 cột với icon tròn */}
+        {/* Card 1*/}
+        <View style={styles.statsCard}>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
               <View style={[styles.iconContainer, { backgroundColor: '#DBEAFE' }]}>
@@ -91,7 +77,10 @@ const HistoryTab = () => {
               <Text style={styles.statValue}>85%</Text>
             </View>
           </View>
+        </View>
 
+        {/* Card 2*/}
+        <View style={styles.chartCard}>
           {/* Tabs */}
           <View style={styles.tabsContainer}>
             {['Ngày', 'Tuần', 'Tháng'].map((tab) => (
@@ -109,32 +98,51 @@ const HistoryTab = () => {
 
           {/* Chart */}
           <View style={styles.chartContainer}>
-            {/* Y-axis */}
-            <View style={styles.yAxis}>
-              <Text style={styles.yLabel}>8</Text>
-              <Text style={styles.yLabel}>6</Text>
-              <Text style={styles.yLabel}>4</Text>
-              <Text style={styles.yLabel}>2</Text>
-              <Text style={styles.yLabel}>0</Text>
+            <View style={styles.chartArea}>
+              <View style={styles.yAxisLine} />
+              <View style={styles.xAxisLine} />
+              <View style={styles.gridLines}>
+                {[8, 6, 4, 2].map((value, _index) => {
+                  const topPosition = ((8 - value) / 8) * 100; // Tính vị trí chính xác
+                  return (
+                    <View key={value} style={[styles.gridLineRow, { top: `${topPosition}%` }]}>
+                      <View style={styles.horizontalLine} />
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* Y-axis labels */}
+              <View style={styles.yAxisLabels}>
+                {[8, 6, 4, 2, 0].map((value, _index) => (
+                  <Text key={value} style={styles.yLabel}>{value}</Text>
+                ))}
+              </View>
+
+              {/* Bars container */}
+              <View style={styles.barsContainer}>
+                {chartData.map((value, index) => {
+                  const heightPercentage = (value / 8) * 100;
+                  return (
+                    <View key={index} style={styles.barWrapper}>
+                      <View style={[styles.bar, { height: `${heightPercentage}%` }]} />
+                    </View>
+                  );
+                })}
+              </View>
             </View>
 
-            {/* Bars */}
-            <View style={styles.barsContainer}>
-              {chartData.map((value, index) => {
-                const height = (value / 8) * 100;
-                return (
-                  <View key={index} style={styles.barWrapper}>
-                    <View style={[styles.bar, { height: height }]} />
-                    <Text style={styles.barLabel}>{labels[index]}</Text>
-                  </View>
-                );
-              })}
+            {/* X-axis labels */}
+            <View style={styles.xAxisLabels}>
+              {labels.map((label, index) => (
+                <Text key={index} style={styles.barLabel}>{label}</Text>
+              ))}
             </View>
           </View>
         </View>
 
-        {/* Card thứ hai - Recent Sessions */}
-        <Text style={styles.sessionsTitle}>Các phiên học gần đây</Text>
+        {/* Card 3 */}
+         <Text style={styles.sessionsTitle}>Các phiên học gần đây</Text>
         <View style={styles.sessionsContainer}>
           {recentSessions.map((session, index) => (
             <View key={index} style={styles.sessionCard}>
@@ -195,6 +203,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
 
+  // Card 1
   statsCard: {
     backgroundColor: 'white',
     borderRadius: 24,
@@ -207,7 +216,8 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  mainCard: {
+  // Card 2
+  chartCard: {
     backgroundColor: 'white',
     borderRadius: 24,
     padding: 20,
@@ -236,15 +246,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  iconClock: {
-    fontSize: 20,
-  },
-  iconBook: {
-    fontSize: 20,
-  },
-  iconChart: {
-    fontSize: 20,
-  },
   statLabel: {
     fontSize: 12,
     color: '#1F2937',
@@ -262,9 +263,8 @@ const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
     gap: 8,
-    paddingHorizontal: 16,
     marginBottom: 20,
-    marginTop: 10,
+    marginTop: 0,
   },
   tab: {
     backgroundColor: '#f5f5f5',
@@ -291,46 +291,128 @@ const styles = StyleSheet.create({
 
   // Chart
   chartContainer: {
-    flexDirection: 'row',
-    height: 140,
-    alignItems: 'flex-end',
-    paddingBottom: 20,
+    height: 220,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  yAxis: {
+
+  chartArea: {
+    height: 160,
+    marginLeft: 30,
+    position: 'relative',
+  },
+
+  // Trục Y
+  yAxisLine: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 2,
+    backgroundColor: '#9CA3AF',
+    zIndex: 1,
+  },
+
+  // Trục X
+  xAxisLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 2,
+    backgroundColor: '#9CA3AF',
+    zIndex: 1,
+  },
+
+  // Grid lines
+  gridLines: {
+    position: 'absolute',
+    left: 2,
+    right: 0,
+    top: 0,
+    bottom: 2,
+    height: '100%',
+    zIndex: 0,
+  },
+
+  gridLineRow: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+  },
+
+  horizontalLine: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    borderStyle: 'dashed',
+  },
+
+  // Labels trục Y
+  yAxisLabels: {
+    position: 'absolute',
+    left: -28,
+    top: 0,
+    bottom: 0,
     justifyContent: 'space-between',
-    height: 100,
-    marginRight: 16,
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
+
   yLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#9CA3AF',
     fontWeight: '400',
+    textAlign: 'right',
+    width: 20,
+    height: 20,
+    textAlignVertical: 'center',
+    marginTop: -10,
   },
+
+  // Container bars
   barsContainer: {
-    flex: 1,
+    position: 'absolute',
+    left: 8,
+    right: 8,
+    bottom: 2,
+    top: 2,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'flex-end',
-    height: 120,
+    zIndex: 2,
   },
+
   barWrapper: {
     alignItems: 'center',
-    justifyContent: 'flex-end',
     flex: 1,
+    maxWidth: 40,
+    height: '100%',
+    justifyContent: 'flex-end',
   },
+
   bar: {
     width: 28,
     backgroundColor: '#60A5FA',
-    marginBottom: 8,
-  },
-  barLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '500',
+    minHeight: 2,
   },
 
-  // Sessions Card
+  // Labels trục X
+  xAxisLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 8,
+    marginLeft: 30,
+    paddingHorizontal: 8,
+  },
+
+  barLabel: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+
+  // Card 3
   sessionsCard: {
     backgroundColor: 'white',
     borderRadius: 24,
