@@ -1,8 +1,7 @@
-import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Redirect, Tabs } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
-import { Redirect } from 'expo-router';
 
 export default function AdminLayout() {
 const { isAuthenticated, user } = useAuthStore();
@@ -10,13 +9,13 @@ if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
   
-  if (user?.role !== 'admin') {
+  if (user?.role !== 'ADMIN') {
     return <Redirect href="/" />;
   }
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.danger,
+        tabBarActiveTintColor: COLORS.primary,
         headerShown: false,
       }}
     >
