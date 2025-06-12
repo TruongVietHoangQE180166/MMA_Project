@@ -332,7 +332,6 @@ export const forgotPassword = async (email: string, username: string): Promise<v
       }
     }
 
-    // Xử lý response thành công
     const responseData = await response.json();
     
     if (responseData.isSuccess === false) {
@@ -355,6 +354,77 @@ export const forgotPassword = async (email: string, username: string): Promise<v
   }
 };
 
-export const resetPassword = async (email: string): Promise<void> => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+export const resetPassword = async (email: string, otp: string, newPassword: string): Promise<void> => {
+  if (!email || !otp || !newPassword) {
+    throw new Error("Email, OTP and new password are required");
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    console.log('RESET PASSWORD Request Body:', JSON.stringify({
+      email,
+      otp,
+      newPassword: "***hidden***"
+    }, null, 2));
+    console.log('RESET PASSWORD Request URL:', `${API_BASE_URL}/api/user/reset-password`);
+    
+    const response = await fetch(`${API_BASE_URL}/api/user/reset-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, otp, newPassword }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      try {
+        const errorData = await response.json();
+        
+        if (errorData.message && errorData.message.messageDetail) {
+          throw new Error(errorData.message.messageDetail);
+        }
+        
+        if (errorData.message) {
+          throw new Error(errorData.message);
+        }
+        
+        if (errorData.error && errorData.error.message) {
+          throw new Error(errorData.error.message);
+        }
+        
+        throw new Error("Password reset failed");
+      } catch (parseError) {
+        if (parseError instanceof SyntaxError) {
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        } else {
+          throw parseError;
+        }
+      }
+    }
+
+    const responseData = await response.json();
+    
+    if (responseData.isSuccess === false) {
+      throw new Error(responseData.message?.messageDetail || "Password reset failed");
+    }
+
+    console.log('Password reset successfully');
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Request timed out");
+    } else if (error instanceof TypeError) {
+      throw new Error("Network error");
+    } else if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error("An unknown error occurred during password reset");
+    }
+  }
 };
