@@ -1,22 +1,19 @@
-import { Redirect } from 'expo-router';
-import { useAuthStore } from '../../store/authStore';
-import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Redirect, Tabs } from 'expo-router';
 import { COLORS } from '../../constants/theme';
+import { useAuthStore } from '../../store/authStore';
 
 export default function UserLayout() {
   const { isAuthenticated, user } = useAuthStore();
   
-  // Kiểm tra quyền truy cập
   if (!isAuthenticated) {
     return <Redirect href="/(auth)/login" />;
   }
   
-  if (user?.role !== 'user') {
+  if (user?.role !== 'USER') {
     return <Redirect href="/" />;
   }
   
-  // Render tabs navigation của user nếu có quyền
   return (
     <Tabs
       screenOptions={{

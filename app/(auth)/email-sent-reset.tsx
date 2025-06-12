@@ -1,19 +1,17 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { COLORS } from '../../constants/theme';
-import { useAuthStore } from '../../store/authStore';
 import { navigate } from '../../utils/navigation';
-import { useLocalSearchParams } from 'expo-router';
 
 export default function EmailSent() {
-  const [code, setCode] = useState('');
+  const [otp, setOtp] = useState(''); 
   const [countdown, setCountdown] = useState(30);
   const [canResend, setCanResend] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const { verifyOTP } = useAuthStore();
   const { email } = useLocalSearchParams();
   const userEmail = Array.isArray(email) ? email[0] : email;
 
@@ -39,15 +37,12 @@ export default function EmailSent() {
       setCanResend(true);
     }
   }, [countdown]);
-
-
-
-  const validateCode = (inputCode: string): boolean => {
-    // Check if code is exactly 6 digits
-    const codeRegex = /^\d{6}$/;
-    const isValid = codeRegex.test(inputCode);
-    
-    if (!inputCode.trim()) {
+     
+  const validateOtp = (inputOtp: string): boolean => { // Đổi từ validateCode thành validateOtp
+    const otpRegex = /^\d{6}$/;
+    const isValid = otpRegex.test(inputOtp);
+         
+    if (!inputOtp.trim()) {
       showToast('error', 'Please enter the verification code');
       return false;
     } else if (!isValid) {
@@ -57,40 +52,46 @@ export default function EmailSent() {
     return true;
   };
 
-  const handleCodeChange = (text: string) => {
-    // Only allow numeric input
-    const numericText = text.replace(/[^0-9]/g, '');
-    setCode(numericText);
-    validateCode(numericText);
+  const handleOtpChange = (text: string) => { // Đổi từ handleCodeChange thành handleOtpChange
+    const numericText = text.replace(/[^0-9]/g, '').slice(0, 6);
+    setOtp(numericText); 
   };
 
   const handleVerify = async () => {
-    if (!validateCode(code)) return;
+    if (!validateOtp(otp)) return; 
+    
+    if (!userEmail) {
+      showToast('error', 'Email is required');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      await verifyOTP(userEmail, code);
-      showToast('success', 'Verification successful!');
-      navigate.toLogin;
+      console.log("userEmail", userEmail);
+      console.log("otp", otp);
+      navigate.toResetPassword(otp, userEmail); 
     } catch (error: any) {
-      showToast('error', error.message || 'Verification failed');
+      showToast('error', 'Failed to proceed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleResendCode = async () => {
+    if (!userEmail) {
+      showToast('error', 'Email is required to resend code');
+      return;
+    }
+
     setIsResending(true);
-    
+         
     try {
-      // Simulate resend API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Reset countdown and states
+             
       setCountdown(30);
       setCanResend(false);
-      setCode('');
-      
+      setOtp(''); // Đổi từ setCode thành setOtp
+             
       showToast('success', 'Verification code has been resent to your email');
     } catch (error) {
       showToast('error', 'Failed to resend code. Please try again.');
@@ -104,6 +105,7 @@ export default function EmailSent() {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -141,8 +143,8 @@ export default function EmailSent() {
               style={styles.inputWithIcon}
               placeholder="Enter verification code"
               placeholderTextColor={styles.placeholderColor.color}
-              value={code}
-              onChangeText={(text) => handleCodeChange(text)}
+              value={otp}
+              onChangeText={(text) => handleOtpChange(text)}
               keyboardType="numeric"
               maxLength={6}
             />

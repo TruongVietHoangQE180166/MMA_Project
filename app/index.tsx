@@ -1,24 +1,22 @@
-import { COLORS, SIZES } from '@/constants/theme';
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { COLORS } from '@/constants/theme';
+import React, { useEffect } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { navigate } from '../utils/navigation';
-import React, { useEffect } from 'react';
 
 export default function StartApp() {
-  const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
  
   useEffect(() => {
      const timer = setTimeout(() => {
        if (isAuthenticated) {
-         user?.role === 'admin' ? navigate.toAdminHome() : navigate.toUserHome();
+         user?.role === 'ADMIN' ? navigate.toAdminHome() : navigate.toUserHome();
        } else {
          navigate.toLogin();
        }
-     }, 5000);
+     }, 2000);
      return () => clearTimeout(timer);
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user]);
  
   return (
     <View style={styles.container}>
