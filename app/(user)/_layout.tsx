@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import { FontAwesome6, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
@@ -19,6 +19,7 @@ export default function UserLayout() {
       screenOptions={{
         tabBarActiveTintColor: COLORS.primary,
         headerShown: false,
+        tabBarLabelPosition: 'below-icon',
       }}
     >
       <Tabs.Screen
@@ -29,10 +30,31 @@ export default function UserLayout() {
         }}
       />
       <Tabs.Screen
+        name="finance"
+        options={{
+          title: 'Finance',
+          tabBarIcon: ({ color }) => <Ionicons name="wallet" size={23} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="statistical"
+        options={{
+          title: 'Statistical',
+          tabBarIcon: ({ color }) => <Ionicons name="stats-chart-outline" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color }) => <MaterialIcons name="history" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <MaterialIcons name="person" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <FontAwesome6 name="user" size={23} color={color} />,
         }}
       />
     </Tabs>
