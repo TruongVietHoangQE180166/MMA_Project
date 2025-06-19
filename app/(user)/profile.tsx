@@ -1,10 +1,10 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useAuthStore } from '../../store/authStore';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AuthButton } from '../../components/AuthButton';
 import { COLORS, SIZES } from '../../constants/theme';
+import { useAuthStore } from '../../store/authStore';
 
 export default function UserProfile() {
   const { user, logout } = useAuthStore();
