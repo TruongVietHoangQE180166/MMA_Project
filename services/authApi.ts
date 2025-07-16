@@ -1,4 +1,4 @@
-import { User } from "../types";
+import { User, UserProfile } from "../types";
 
 const API_BASE_URL = "http://10.0.2.2:8080";
 
@@ -63,12 +63,6 @@ export const authApi = {
     const timeoutId = setTimeout(() => controller.abort(), 100000);
 
     try {
-      console.log('LOGIN Request Body:', JSON.stringify({
-        username,
-        password: "***hidden***" 
-      }, null, 2));
-      console.log('LOGIN Request URL:', `${API_BASE_URL}/api/auth/login`);
-      
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
@@ -115,12 +109,12 @@ export const authApi = {
         throw new Error("No access token received");
       }
 
-      console.log('Login successful, token received');
+
       return accessToken;
     } catch (error) {
       clearTimeout(timeoutId);
 
-      if (error instanceof Error && error.name === "AbورتError") {
+      if (error instanceof Error && error.name === "AbortError") {
         throw new Error("Request timed out");
       } else if (error instanceof TypeError) {
         throw new Error("Network error");
@@ -141,7 +135,7 @@ export const authApi = {
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-      console.log('GET USER DETAIL Request URL:', `${API_BASE_URL}/api/user/get-detail`);
+
       
       const response = await fetch(`${API_BASE_URL}/api/user/get-detail`, {
         method: "GET",
@@ -188,7 +182,7 @@ export const authApi = {
         throw new Error("Invalid user data received");
       }
 
-      console.log('User details retrieved successfully');
+
       return {
         username: data.username,
         email: data.email,
@@ -205,6 +199,84 @@ export const authApi = {
         throw error;
       } else {
         throw new Error("An unknown error occurred while getting user details");
+      }
+    }
+  },
+  getUserProfile: async (token: string): Promise<UserProfile> => {
+    if (!token) {
+      throw new Error("Token is required");
+    }
+  
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+  
+    try {
+
+      
+      const response = await fetch(`${API_BASE_URL}/api/profile/user`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        signal: controller.signal,
+      });
+  
+      clearTimeout(timeoutId);
+  
+      if (!response.ok) {
+        try {
+          const errorData = await response.json();
+          
+          if (errorData.message && errorData.message.messageDetail) {
+            throw new Error(errorData.message.messageDetail);
+          }
+          
+          if (errorData.message) {
+            throw new Error(errorData.message);
+          }
+          
+          throw new Error("Failed to get user profile");
+        } catch (parseError) {
+          if (parseError instanceof SyntaxError) {
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+          } else {
+            throw parseError;
+          }
+        }
+      }
+  
+      const responseData = await response.json();
+      
+      if (!responseData.isSuccess) {
+        throw new Error(responseData.message?.messageDetail || "Failed to get user profile");
+      }
+      
+      const { data } = responseData;
+      if (!data.fullName || !data.gender) {
+        throw new Error("Invalid user profile data received");
+      }
+  
+
+      return {
+        nickName: data.nickName || "", 
+        fullName: data.fullName || "",
+        phoneNumber: data.phoneNumber || "",
+        dateOfBirth: data.dateOfBirth || "", 
+        avatar: data.avatar || "",
+        gender: data.gender || "",
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+  
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Request timed out");
+      } else if (error instanceof TypeError) {
+        throw new Error("Network error");
+      } else if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error("An unknown error occurred while getting user profile");
       }
     }
   },
@@ -226,12 +298,7 @@ export const authApi = {
     const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-      console.log('REGISTER Request Body:', JSON.stringify({
-        username,
-        email,
-        password: "***hidden***" 
-      }, null, 2));
-      console.log('REGISTER Request URL:', `${API_BASE_URL}/api/auth/register`);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: {
@@ -278,6 +345,162 @@ export const authApi = {
       }
     }
   },
+
+  updateProfile: async (token: string, profileData: Partial<UserProfile>): Promise<UserProfile> => {
+    if (!token) {
+      throw new Error("Token is required");
+    }
+  
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+  
+    try {
+
+      
+      const response = await fetch(`${API_BASE_URL}/api/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(profileData),
+        signal: controller.signal,
+      });
+  
+      clearTimeout(timeoutId);
+  
+      if (!response.ok) {
+        try {
+          const errorData = await response.json();
+          
+          if (errorData.message && errorData.message.messageDetail) {
+            throw new Error(errorData.message.messageDetail);
+          }
+          
+          if (errorData.message) {
+            throw new Error(errorData.message);
+          }
+          
+          throw new Error("Failed to update profile");
+        } catch (parseError) {
+          if (parseError instanceof SyntaxError) {
+            throw new Error(`Server error: ${response.status} ${response.statusText}`);
+          } else {
+            throw parseError;
+          }
+        }
+      }
+  
+      const responseData = await response.json();
+      
+      if (!responseData.isSuccess) {
+        throw new Error(responseData.message?.messageDetail || "Failed to update profile");
+      }
+      
+      const { data } = responseData;
+      
+      return {
+        nickName: data.nickName || "",
+        fullName: data.fullName || "",
+        phoneNumber: data.phoneNumber || "",
+        dateOfBirth: data.dateOfBirth || "",
+        avatar: data.avatar || "",
+        gender: data.gender || "",
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+  
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Request timed out");
+      } else if (error instanceof TypeError) {
+        throw new Error("Network error");
+      } else if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error("An unknown error occurred while updating profile");
+      }
+    }
+  },
+
+  uploadImage: async (token: string, file: any): Promise<string> => {
+    if (!token) {
+      throw new Error("Token is required");
+    }
+    
+    if (!file || !file.uri) {
+      throw new Error("Valid file with URI is required");
+    }
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
+    try {
+      const formData = new FormData();
+      
+      formData.append('file', {
+        uri: file.uri,
+        type: file.type || 'image/jpeg', 
+        name: file.name || 'avatar.jpg'
+      } as any);
+      
+      const response = await fetch(`${API_BASE_URL}/api/upload`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.message?.messageDetail) {
+            throw new Error(errorData.message.messageDetail);
+          }
+          if (errorData.message) {
+            throw new Error(errorData.message);
+          }
+        } catch (parseError) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+        }
+      }
+      
+      const responseData = await response.json();
+      
+      if (!responseData.isSuccess) {
+        throw new Error(responseData.message?.messageDetail || "Failed to upload image");
+      }
+      
+      const { data } = responseData;
+      
+      if (!data || !data.url) {
+        throw new Error("Invalid upload response - no image URL received");
+      }
+      
+      const imageUrl = data.url;
+      return imageUrl;
+      
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Image upload timed out");
+      } else if (error instanceof TypeError) {
+        throw new Error("Network error during image upload");
+      } else if (error instanceof Error) {
+        throw error;
+      } else {
+        throw new Error("An unknown error occurred during image upload");
+      }
+    }
+  },
 };
 
 export const forgotPassword = async (email: string, username: string): Promise<void> => {
@@ -289,12 +512,6 @@ export const forgotPassword = async (email: string, username: string): Promise<v
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    console.log('FORGOT PASSWORD Request Body:', JSON.stringify({
-      email,
-      username
-    }, null, 2));
-    console.log('FORGOT PASSWORD Request URL:', `${API_BASE_URL}/api/user/forget-password`);
-    
     const response = await fetch(`${API_BASE_URL}/api/user/forget-password`, {
       method: "POST",
       headers: {
@@ -338,7 +555,6 @@ export const forgotPassword = async (email: string, username: string): Promise<v
       throw new Error(responseData.message?.messageDetail || "Forgot password request failed");
     }
 
-    console.log('Forgot password request sent successfully');
   } catch (error) {
     clearTimeout(timeoutId);
 
@@ -363,12 +579,6 @@ export const resetPassword = async (email: string, otp: string, newPassword: str
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    console.log('RESET PASSWORD Request Body:', JSON.stringify({
-      email,
-      otp,
-      newPassword: "***hidden***"
-    }, null, 2));
-    console.log('RESET PASSWORD Request URL:', `${API_BASE_URL}/api/user/reset-password`);
     
     const response = await fetch(`${API_BASE_URL}/api/user/reset-password`, {
       method: "POST",
@@ -412,8 +622,6 @@ export const resetPassword = async (email: string, otp: string, newPassword: str
     if (responseData.isSuccess === false) {
       throw new Error(responseData.message?.messageDetail || "Password reset failed");
     }
-
-    console.log('Password reset successfully');
   } catch (error) {
     clearTimeout(timeoutId);
 
@@ -427,4 +635,5 @@ export const resetPassword = async (email: string, otp: string, newPassword: str
       throw new Error("An unknown error occurred during password reset");
     }
   }
+  
 };

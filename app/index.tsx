@@ -1,16 +1,64 @@
 import { COLORS } from '@/constants/theme';
-import React, { useEffect } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, StyleSheet, Text, View, Modal, ActivityIndicator } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import { navigate } from '../utils/navigation';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function StartApp() {
   const { isAuthenticated, user } = useAuthStore();
+  const router = useRouter();
+  const [modal, setModal] = useState<{ show: boolean, type: 'resume' | 'ended' | null }>({ show: false, type: null });
  
   useEffect(() => {
-     const timer = setTimeout(() => {
+     const timer = setTimeout(async () => {
        if (isAuthenticated) {
-         user?.role === 'ADMIN' ? navigate.toAdminHome() : navigate.toUserHome();
+         if (user?.role === 'USER') {
+           // Check resume study session
+           const sessionStr = await AsyncStorage.getItem('CURRENT_STUDY_SESSION');
+           if (sessionStr) {
+             try {
+               const session = JSON.parse(sessionStr);
+               const now = Date.now();
+               const elapsed = Math.floor((now - session.startTime) / 1000);
+               const remaining = session.duration - elapsed;
+               if (remaining > 0) {
+                 setModal({ show: true, type: 'resume' });
+                 setTimeout(() => {
+                   setModal({ show: false, type: null });
+                   router.replace({
+                     pathname: '/(user)/StudySession',
+                     params: {
+                       duration: Math.ceil(remaining / 60).toString(),
+                       subject: session.subject,
+                       sessionKey: session.sessionKey,
+                       remainingSeconds: remaining.toString(),
+                       sessionId: session.sessionId, // truyền sessionId nếu có
+                     },
+                   });
+                 }, 3000);
+                 return;
+               } else {
+                 setModal({ show: true, type: 'ended' });
+                 setTimeout(async () => {
+                   setModal({ show: false, type: null });
+                   await AsyncStorage.removeItem('CURRENT_STUDY_SESSION');
+                   navigate.toUserHome();
+                 }, 3000);
+                 return;
+               }
+             } catch (e) {
+               await AsyncStorage.removeItem('CURRENT_STUDY_SESSION');
+             }
+           }
+           navigate.toUserHome();
+         } else if (user?.role === 'ADMIN') {
+           navigate.toAdminHome();
+         } else {
+           navigate.toLogin();
+         }
        } else {
          navigate.toLogin();
        }
@@ -34,6 +82,24 @@ export default function StartApp() {
         <Image source={require('../assets/images/pen.png')} style={styles.pen} />
         <Image source={require('../assets/images/pen.png')} style={styles.pen} />
       </View>
+     {/* Modal thông báo phiên học */}
+     <Modal visible={modal.show} transparent animationType="fade">
+       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', alignItems: 'center' }}>
+         <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 32, alignItems: 'center', minWidth: 280, maxWidth: 340, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 8 }}>
+           {modal.type === 'resume' && <MaterialIcons name="play-circle-filled" size={48} color="#4A90E2" style={{ marginBottom: 12 }} />}
+           {modal.type === 'ended' && <MaterialIcons name="check-circle" size={48} color="#FF6B6B" style={{ marginBottom: 12 }} />}
+           <Text style={{ fontSize: 18, fontWeight: 'bold', color: modal.type === 'resume' ? '#4A90E2' : '#FF6B6B', marginBottom: 8 }}>
+             {modal.type === 'resume' ? 'Bạn có phiên học đang diễn ra' : 'Phiên học đã kết thúc'}
+           </Text>
+           <Text style={{ fontSize: 15, color: '#333', textAlign: 'center', marginBottom: 8 }}>
+             {modal.type === 'resume'
+               ? 'Bạn sẽ được chuyển sang phiên học sau 3 giây...'
+               : 'Phiên học đã kết thúc, sẽ về trang chủ sau 3 giây.'}
+           </Text>
+           <ActivityIndicator size="small" color={modal.type === 'resume' ? '#4A90E2' : '#FF6B6B'} style={{ marginTop: 8 }} />
+         </View>
+       </View>
+     </Modal>
     </View>
   );
 }

@@ -1,29 +1,35 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { authApi, forgotPassword, resetPassword } from "../services/authApi";
-import { AuthState } from "../types";
+import { AuthState, UserProfile } from "../types";
 
 const initializeAuthState = async (): Promise<Partial<AuthState>> => {
   try {
     const token = await AsyncStorage.getItem("token");
     const userString = await AsyncStorage.getItem("user");
+    const userProfileString = await AsyncStorage.getItem("userProfile"); 
+    
     if (token && userString) {
       const user = JSON.parse(userString);
+      const userProfile = userProfileString ? JSON.parse(userProfileString) : null;
       return {
         user,
+        userProfile,
         token,
         isAuthenticated: !!user && !!token,
       };
     }
     return {
       user: null,
+      userProfile: null,
       token: null,
       isAuthenticated: false,
     };
   } catch (error) {
-    console.error("Failed to initialize auth state:", error);
+
     return {
       user: null,
+      userProfile: null,
       token: null,
       isAuthenticated: false,
     };
@@ -32,6 +38,7 @@ const initializeAuthState = async (): Promise<Partial<AuthState>> => {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  userProfile: null, 
   token: null,
   isAuthenticated: false,
 
@@ -42,6 +49,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("user", JSON.stringify(user));
       set({ user, token, isAuthenticated: true });
+      try {
+        const userProfile = await authApi.getUserProfile(token);
+        await AsyncStorage.setItem("userProfile", JSON.stringify(userProfile));
+        set({ userProfile });
+      } catch (profileError) {
+
+      }
     } catch (error: any) {
       throw new Error(error.message || "Invalid credentials");
     }
@@ -67,7 +81,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       await AsyncStorage.removeItem("token");
       await AsyncStorage.removeItem("user");
-      set({ user: null, token: null, isAuthenticated: false });
+      await AsyncStorage.removeItem("userProfile"); 
+      set({ user: null, userProfile: null, token: null, isAuthenticated: false });
     } catch (error: any) {
       throw new Error(error.message || "Logout failed");
     }
@@ -80,6 +95,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw new Error(error.message || "Password reset failed");
     }
   },
+
   forgotPassword: async (email: string, username: string) => {
     try {
       await forgotPassword(email, username);
@@ -100,6 +116,68 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user });
     } catch (error: any) {
       throw new Error(error.message || "Failed to refresh user data");
+    }
+  },
+
+  getUserProfile: async (forceRefresh: boolean = false) => {
+    try {
+      const { token } = get();
+      if (!token) {
+        throw new Error("No token available");
+      }
+  
+      const userProfile = await authApi.getUserProfile(token);
+      await AsyncStorage.setItem("userProfile", JSON.stringify(userProfile));
+      set({ userProfile });
+      return userProfile;
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to get user profile");
+    }
+  },
+  updateProfile: async (profileData: Partial<UserProfile>) => {
+    try {
+      const { token } = get();
+      if (!token) {
+        throw new Error("No token available");
+      }
+      
+      const updatedProfile = await authApi.updateProfile(token, profileData);
+      
+      await AsyncStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+      set({ userProfile: updatedProfile });
+      
+      return updatedProfile;
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to update profile");
+    }
+  },
+  
+  updateProfileWithImage: async (profileData: Partial<UserProfile>, imageFile?: any) => {
+    try {
+      const { token } = get();
+      if (!token) {
+        throw new Error("No token available");
+      }
+      
+      let finalProfileData = { ...profileData };
+      
+      if (imageFile && imageFile.uri) {
+        try {
+          const imageUrl = await authApi.uploadImage(token, imageFile);
+          finalProfileData.avatar = imageUrl;
+        } catch (uploadError) {
+          throw new Error(`Image upload failed: ${uploadError.message}`);
+        }
+      }
+      
+      const updatedProfile = await authApi.updateProfile(token, finalProfileData);
+      await AsyncStorage.setItem("userProfile", JSON.stringify(updatedProfile));
+      set({ userProfile: updatedProfile });
+      
+      return updatedProfile;
+      
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to update profile with image");
     }
   },
 }));
