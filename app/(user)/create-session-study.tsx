@@ -126,6 +126,7 @@ export default function CreateSession() {
             subject: sessionData.subject,
             sessionKey,
             sessionId,
+            isNewSession: 'true',
           },
         });
       } else {

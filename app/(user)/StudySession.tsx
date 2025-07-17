@@ -21,16 +21,13 @@ interface StudySessionStats {
   backgroundLogs: { time: string; duration: number }[]; 
 }
 
-const MILESTONES = [0.2, 0.4, 0.6, 0.8];
-
 export default function StudySession() {
   useKeepAwake();
   const router = useRouter();
   // Bỏ lấy sessionId từ params, chỉ lấy sessionKey nếu cần
-  const { duration = "60", subject = "", sessionKey = "0", remainingSeconds } = useLocalSearchParams();
-  const totalStudyTime = Number(duration) * 60; // giây
-
+  const { duration = "60", subject = "", sessionKey = "0", remainingSeconds, sessionId: sessionIdFromParams, isNewSession } = useLocalSearchParams();
   const { initialRemaining, initialStartTimestamp } = useMemo(() => {
+    const totalStudyTime = Number(duration) * 60;
     const remaining = remainingSeconds ? Number(remainingSeconds) : totalStudyTime;
     const startTs = remainingSeconds
       ? Date.now() - (totalStudyTime - Number(remainingSeconds)) * 1000
@@ -38,15 +35,18 @@ export default function StudySession() {
     return { initialRemaining: remaining, initialStartTimestamp: startTs };
   }, [duration, remainingSeconds, sessionKey]);
 
+  const totalStudyTime = useMemo(() => Number(duration) * 60, [duration]);
   const defaultStats: StudySessionStats = {
     totalBackgroundTime: 0,
     backgroundExitCount: 0,
     violationCount: 0,
     completedPercent: 0,
-    totalStudyTime,
+    totalStudyTime: Number(duration) * 60,
     backgroundLogs: [],
   };
+  const MILESTONES = [0.2, 0.4, 0.6, 0.8];
   const [remaining, setRemaining] = useState(initialRemaining);
+  const [initialStartTimestampState, setInitialStartTimestampState] = useState(initialStartTimestamp);
   const [stats, setStatsRaw] = useState<StudySessionStats>(defaultStats);
   const [hasLoadedStats, setHasLoadedStats] = useState(false);
   const [milestoneModal, setMilestoneModal] = useState(false);
@@ -68,9 +68,14 @@ export default function StudySession() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEnding, setIsEnding] = useState(false);
   const justRestoredFromKill = useRef(false);
+  const [penaltyModal, setPenaltyModal] = useState<{ show: boolean; duration: number } | null>(null);
 
-  // Khi mount, luôn lấy sessionId từ AsyncStorage
+  // Khi mount, luôn lấy sessionId từ params nếu có, nếu không thì lấy từ AsyncStorage
   useEffect(() => {
+    if (sessionIdFromParams) {
+      setSessionId(sessionIdFromParams as string);
+      return;
+    }
     (async () => {
       const sessionStr = await AsyncStorage.getItem("CURRENT_STUDY_SESSION");
       if (sessionStr) {
@@ -90,7 +95,7 @@ export default function StudySession() {
         router.replace("/(user)/home");
       }
     })();
-  }, []);
+  }, [sessionIdFromParams]);
   
   // Tạo hàm startTimer để có thể gọi lại khi cần
   const startTimer = useCallback(() => {
@@ -216,6 +221,10 @@ export default function StudySession() {
                 })
                 .catch((err) => { console.log('applyPenalty error (relaunch):', err); });
             }
+            // Hiển thị modal nếu rời app quá 1 phút
+            if (bgTime > 60) {
+              setPenaltyModal({ show: true, duration: bgTime });
+            }
           }
           justRestoredFromKill.current = true;
         }
@@ -271,6 +280,14 @@ export default function StudySession() {
     }
     return () => timer && clearTimeout(timer);
   }, [alertModal.show]);
+
+  // Tự động tắt penaltyModal sau 3s
+  useEffect(() => {
+    if (penaltyModal && penaltyModal.show) {
+      const timer = setTimeout(() => setPenaltyModal(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [penaltyModal]);
 
   // AppState: thống kê thời gian rời app, foreground, gửi notification khi rời app
   useEffect(() => {
@@ -333,6 +350,12 @@ export default function StudySession() {
                   handleApiResponseLog(res, 'ApplyPenalty');
                 })
                 .catch((err) => { console.log('applyPenalty error:', err); });
+            }
+            // Hiển thị modal nếu rời app quá 1 phút (cả khi chỉ background/foreground) - thêm delay để đảm bảo modal luôn hiển thị
+            if (bgTime > 60) {
+              setTimeout(() => {
+                setPenaltyModal({ show: true, duration: bgTime });
+              }, 100);
             }
           }
           
@@ -636,83 +659,86 @@ export default function StudySession() {
       <Modal visible={endModal} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContainer, styles.endModalContainer, { alignItems: 'center', paddingHorizontal: 0 }]}> 
-            <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#E6F7FF', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
-              <MaterialIcons name="check-circle" size={56} color="#4A90E2" />
+            <View style={{ alignItems: 'center', width: '100%' }}>
+              {/* Icon và tiêu đề */}
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#E6F7FF', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                <MaterialIcons name="check-circle" size={36} color="#4A90E2" />
+              </View>
+              <Text style={{ color: '#4A90E2', fontSize: 18, fontWeight: 'bold', marginBottom: 2, textAlign: 'center' }}>Session Completed!</Text>
+              <Text style={{ color: '#333', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>Your results</Text>
+
+              {/* Stats 2 hàng */}
+              <View style={{ width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 10 }}>
+                <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 10, padding: 10, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
+                  <MaterialIcons name="percent" size={18} color="#4A90E2" style={{ marginBottom: 2 }} />
+                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#4A90E2' }}>{Math.min(100, Math.round((totalElapsed / totalStudyTime) * 100))}%</Text>
+                  <Text style={{ fontSize: 10, color: '#666', marginTop: 2 }}>Completed</Text>
+                </View>
+                <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 10, padding: 10, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
+                  <MaterialIcons name="timer" size={18} color="#4A90E2" style={{ marginBottom: 2 }} />
+                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(totalLearned)}</Text>
+                  <Text style={{ fontSize: 10, color: '#666', marginTop: 2 }}>Studied</Text>
+                </View>
+                <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 10, padding: 10, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
+                  <MaterialIcons name="phone-android" size={18} color="#4A90E2" style={{ marginBottom: 2 }} />
+                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(fgTime)}</Text>
+                  <Text style={{ fontSize: 10, color: '#666', marginTop: 2 }}>In app</Text>
+                </View>
+                <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 10, padding: 10, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
+                  <MaterialIcons name="exit-to-app" size={18} color="#4A90E2" style={{ marginBottom: 2 }} />
+                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(stats.totalBackgroundTime)}</Text>
+                  <Text style={{ fontSize: 10, color: '#666', marginTop: 2 }}>Out of app</Text>
+                </View>
+              </View>
+
+              {/* Vi phạm & số lần thoát app */}
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#E6F7FF', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, marginRight: 8 }}>
+                  <MaterialIcons name="history" size={15} color="#4A90E2" style={{ marginRight: 2 }} />
+                  <Text style={{ color: '#4A90E2', fontWeight: 'bold', fontSize: 12 }}>{stats.backgroundExitCount}</Text>
+                  <Text style={{ color: '#4A90E2', fontSize: 11, marginLeft: 2 }}>app exits</Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF0F0', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 }}>
+                  <MaterialIcons name="error-outline" size={15} color="#FF6B6B" style={{ marginRight: 2 }} />
+                  <Text style={{ color: '#FF6B6B', fontWeight: 'bold', fontSize: 12 }}>{stats.violationCount}</Text>
+                  <Text style={{ color: '#FF6B6B', fontSize: 11, marginLeft: 2 }}>violations</Text>
+                </View>
+              </View>
+
+              {/* Lịch sử thoát app */}
+              {/* App exit details - REMOVE THIS SECTION */}
+
+              {/* Nút về trang chủ */}
+              <TouchableOpacity style={[styles.homeButton, { marginTop: 6, width: '90%' }]} onPress={async () => {
+                setEndModal(false);
+                router.replace("/(user)/home");
+              }}>
+                <LinearGradient
+                  colors={['#4A90E2', '#4A90E2']}
+                  style={[styles.homeButtonGradient, { borderRadius: 20, justifyContent: 'center' }]}
+                >
+                  <MaterialIcons name="home" size={18} color="#ffffff" />
+                  <Text style={styles.homeButtonText}>Go to Home</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-            <Text style={[styles.modalTitle, { color: '#4A90E2', fontSize: 22, fontWeight: 'bold', marginBottom: 4 }]}>You have completed the session!</Text>
-            <Text style={[styles.modalText, { color: '#333', fontSize: 15, marginBottom: 18 }]}>Here are your results.</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', width: '90%', marginBottom: 18 }}>
-              <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 12, shadowColor: '#4A90E2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F1F5F9' }}>
-                <MaterialIcons name="percent" size={24} color="#4A90E2" style={{ marginBottom: 4 }} />
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#4A90E2' }}>{Math.min(100, Math.round((totalElapsed / totalStudyTime) * 100))}%</Text>
-                <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Completed</Text>
-              </View>
-              <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 12, shadowColor: '#4A90E2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F1F5F9' }}>
-                <MaterialIcons name="timer" size={24} color="#4A90E2" style={{ marginBottom: 4 }} />
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(totalLearned)}</Text>
-                <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Studied</Text>
-              </View>
-              <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 12, shadowColor: '#4A90E2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F1F5F9' }}>
-                <MaterialIcons name="phone-android" size={24} color="#4A90E2" style={{ marginBottom: 4 }} />
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(fgTime)}</Text>
-                <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>In app</Text>
-              </View>
-              <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 14, padding: 16, alignItems: 'center', marginBottom: 12, shadowColor: '#4A90E2', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: '#F1F5F9' }}>
-                <MaterialIcons name="exit-to-app" size={24} color="#4A90E2" style={{ marginBottom: 4 }} />
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(stats.totalBackgroundTime)}</Text>
-                <Text style={{ fontSize: 12, color: '#666', marginTop: 2 }}>Out of app</Text>
-              </View>
-            </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 18 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#E6F7FF', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8, marginRight: 12 }}>
-                <MaterialIcons name="history" size={18} color="#4A90E2" style={{ marginRight: 4 }} />
-                <Text style={{ color: '#4A90E2', fontWeight: 'bold', fontSize: 15 }}>{stats.backgroundExitCount}</Text>
-                <Text style={{ color: '#4A90E2', fontSize: 13, marginLeft: 4 }}>app exits</Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF0F0', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 8 }}>
-                <MaterialIcons name="error-outline" size={18} color="#FF6B6B" style={{ marginRight: 4 }} />
-                <Text style={{ color: '#FF6B6B', fontWeight: 'bold', fontSize: 15 }}>{stats.violationCount}</Text>
-                <Text style={{ color: '#FF6B6B', fontSize: 13, marginLeft: 4 }}>violations</Text>
-              </View>
-            </View>
-            {stats.backgroundLogs.length > 0 && (
-              <View style={styles.finalLogsContainer}>
-                <Text style={styles.finalLogsTitle}>App exit details:</Text>
-                <ScrollView style={styles.finalLogsScroll} showsVerticalScrollIndicator={false}>
-                {stats.backgroundLogs.map((log, idx) => (
-                    <View key={idx} style={styles.logItem}>
-                      <View style={styles.logIndex}>
-                        <Text style={styles.logIndexText}>{idx + 1}</Text>
-                      </View>
-                      <View style={styles.logContent}>
-                        <Text style={styles.logTime}>{log.time}</Text>
-                        <Text style={styles.logDuration}>{formatShortMinSec(log.duration)}</Text>
-                      </View>
-                      <MaterialIcons 
-                        name={log.duration > 60 ? "warning" : "info"} 
-                        size={16} 
-                        color={log.duration > 60 ? "#ff6b6b" : "#4A90E2"} 
-                      />
-                    </View>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-            <TouchableOpacity style={[styles.homeButton, { marginTop: 8, width: '90%' }]} onPress={async () => {
-              setEndModal(false);
-              router.replace("/(user)/home");
-            }}>
-              <LinearGradient
-                colors={['#4A90E2', '#4A90E2']}
-                style={[styles.homeButtonGradient, { borderRadius: 20, justifyContent: 'center' }]}
-              >
-                <MaterialIcons name="home" size={20} color="#ffffff" />
-                <Text style={styles.homeButtonText}>Go to Home</Text>
-              </LinearGradient>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
+      {penaltyModal && penaltyModal.show && (
+        <Modal visible transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContainer, { alignItems: 'center' }]}> 
+              <View style={[styles.warningIcon, { borderWidth: 2, borderColor: '#FFB300', backgroundColor: '#FFF8E1' }]}> 
+                <MaterialIcons name="access-time" size={40} color="#FFB300" />
+              </View>
+              <Text style={[styles.modalTitle, { color: '#FFB300', fontWeight: 'bold' }]}>Rời app quá lâu</Text>
+              <Text style={[styles.modalText, { color: '#333', textAlign: 'center', marginBottom: 8 }]}>Bạn đã rời app quá lâu: {Math.floor(penaltyModal.duration / 60)} phút {penaltyModal.duration % 60} giây</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -844,7 +870,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
-    height: 280,
+    maxHeight: 280,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -865,7 +891,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   logsScroll: {
-    flex: 1,
+    flexGrow: 1,
+    maxHeight: '100%',
   },
   logItem: {
     flexDirection: 'row',
@@ -1065,42 +1092,42 @@ const styles = StyleSheet.create({
   
   // End modal styles
   endModalContainer: {
-    maxHeight: height * 0.8,
-    paddingVertical: 24,
+    maxHeight: height * 0.6,
+    paddingVertical: 16,
   },
   completedIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#e8f5e8',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   statBox: {
     width: '48%',
     backgroundColor: '#f8f9fa',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 10,
+    padding: 10,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#e9ecef',
   },
   statBoxNumber: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: 'bold',
     color: '#4A90E2',
   },
   statBoxLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
     marginTop: 4,
     textAlign: 'center',
@@ -1109,11 +1136,11 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#f8f9fa',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    padding: 10,
+    marginBottom: 12,
   },
   summaryText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#333',
     marginBottom: 4,
   },
@@ -1121,21 +1148,21 @@ const styles = StyleSheet.create({
     width: '100%',
     backgroundColor: '#f8f9fa',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    maxHeight: 120,
+    padding: 10,
+    marginBottom: 12,
+    maxHeight: 80,
   },
   finalLogsTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#4A90E2',
     marginBottom: 8,
   },
   finalLogsScroll: {
-    maxHeight: 80,
+    maxHeight: 60,
   },
   finalLogItem: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#666',
     marginBottom: 2,
   },
@@ -1151,12 +1178,12 @@ const styles = StyleSheet.create({
   homeButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
   },
   homeButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
   },
