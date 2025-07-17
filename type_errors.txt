@@ -1,0 +1,12 @@
+app/(user)/chat.tsx(154,73): error TS2551: Property 'onPrimary' does not exist on type 'ThemeColors'. Did you mean 'primary'?
+app/(user)/chat.tsx(155,67): error TS2551: Property 'onPrimary' does not exist on type 'ThemeColors'. Did you mean 'primary'?
+app/(user)/chat.tsx(156,70): error TS2551: Property 'onPrimary' does not exist on type 'ThemeColors'. Did you mean 'primary'?
+app/(user)/chat.tsx(175,71): error TS2339: Property 'onSurfaceVariant' does not exist on type 'ThemeColors'.
+app/(user)/chat.tsx(191,45): error TS2339: Property 'surfaceVariant' does not exist on type 'ThemeColors'.
+app/(user)/chat.tsx(192,41): error TS2339: Property 'outline' does not exist on type 'ThemeColors'.
+app/(user)/chat.tsx(200,39): error TS2551: Property 'onSurface' does not exist on type 'ThemeColors'. Did you mean 'surface'?
+app/(user)/chat.tsx(206,50): error TS2339: Property 'onSurfaceVariant' does not exist on type 'ThemeColors'.
+app/(user)/chat.tsx(221,37): error TS2551: Property 'onPrimary' does not exist on type 'ThemeColors'. Did you mean 'primary'?
+app/(user)/chat.tsx(226,34): error TS2339: Property 'outline' does not exist on type 'ThemeColors'.
+components/Create-session.tsx(70,7): error TS2820: Type '"/(user)/study-session"' is not assignable to type 'RelativePathString | ExternalPathString | "/" | "/_sitemap" | "/(admin)/home" | "/home" | "/(admin)/profile" | "/profile" | "/(auth)/email-sent-reset" | ... 24 more ... | "/wallet"'. Did you mean '"/(user)/StudySession"'?
+hooks/useThemeColor.ts(6,10): error TS2724: '"@/constants/theme"' has no exported member named 'Colors'. Did you mean 'COLORS'?

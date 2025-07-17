@@ -1,4 +1,4 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useFocusEffect } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
@@ -17,9 +17,11 @@ import {
   TouchableOpacity,
   View,
   SafeAreaView,
+  Switch,
 } from "react-native";
 import { AuthButton } from "../../components/AuthButton";
 import { useAuthStore } from "../../store/authStore";
+import { useTheme } from "../../contexts/ThemeContext";
 
 export default function UserProfile() {
   const {
@@ -30,6 +32,7 @@ export default function UserProfile() {
     updateProfileWithImage,
     getUserProfile,
   } = useAuthStore();
+  const { theme, isDark, toggleTheme } = useTheme();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -220,23 +223,28 @@ export default function UserProfile() {
     }
   };
 
+  const styles = createStyles(theme);
+
   if (!user || !userProfile) {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingTop: 48, paddingBottom: 120 }]}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: 48, paddingBottom: 120 },
+          ]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Header */}
+          <View style={styles.headerContainer}>
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.logo_header}
+            />
+            <Text style={styles.title_header}>Profile</Text>
+          </View>
           {/* Header với logo */}
           <View style={styles.header}>
-            <View style={styles.logo}>
-              <Image
-                source={require("../../assets/images/logo.png")}
-                style={styles.logoImage}
-                resizeMode="cover"
-              />
-            </View>
-            <Text style={styles.title}>Study-Agent</Text>
             <Text style={styles.subtitle}>Loading information...</Text>
           </View>
           <View style={styles.section}>
@@ -250,20 +258,23 @@ export default function UserProfile() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingTop: 48, paddingBottom: 120 }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: 48, paddingBottom: 120 },
+        ]}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.logo_header}
+          />
+          <Text style={styles.title_header}>Profile</Text>
+        </View>
+
         {/* Header với logo */}
         <View style={styles.header}>
-          <View style={styles.logo}>
-            <Image
-              source={require("../../assets/images/logo.png")}
-              style={styles.logoImage}
-              resizeMode="cover"
-            />
-          </View>
-          <Text style={styles.title}>Study-Agent</Text>
-          <Text style={styles.subtitle}>View and edit your profile</Text>
           <View style={styles.avatarContainer}>
             {(isEditing ? editedProfile.avatar : userProfile.avatar) ? (
               <Image
@@ -419,7 +430,11 @@ export default function UserProfile() {
                         ? formatDateForDisplay(editedProfile.dateOfBirth)
                         : "Select date"}
                     </Text>
-                    <MaterialIcons name="date-range" size={20} color="#3B82F6" />
+                    <MaterialIcons
+                      name="date-range"
+                      size={20}
+                      color="#3B82F6"
+                    />
                   </TouchableOpacity>
                 ) : (
                   <Text style={styles.infoText}>
@@ -503,6 +518,71 @@ export default function UserProfile() {
             </View>
           </View>
         </View>
+
+        {/* Theme Settings Section */}
+        <View
+          style={[styles.section, { backgroundColor: theme.colors.background }]}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+              Theme Settings
+            </Text>
+          </View>
+          <View
+            style={[styles.infoCard, { backgroundColor: theme.colors.card }]}
+          >
+            <View style={styles.infoRow}>
+              <Ionicons
+                name={isDark ? "moon" : "sunny"}
+                size={20}
+                color={theme.colors.textSecondary}
+              />
+              <View style={styles.infoContent}>
+                <Text
+                  style={[
+                    styles.infoLabel,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Dark Mode
+                </Text>
+                <View style={styles.themeToggleContainer}>
+                  <Text
+                    style={[
+                      styles.themeToggleText,
+                      { color: theme.colors.text },
+                    ]}
+                  >
+                    {isDark ? "Dark Mode" : "Light Mode"}
+                  </Text>
+                  <Switch
+                    trackColor={{
+                      false: theme.colors.border,
+                      true: theme.colors.primary,
+                    }}
+                    thumbColor={
+                      isDark ? theme.colors.surface : theme.colors.surface
+                    }
+                    ios_backgroundColor={theme.colors.border}
+                    onValueChange={toggleTheme}
+                    value={isDark}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.themeDescription,
+                    { color: theme.colors.textMuted },
+                  ]}
+                >
+                  {isDark
+                    ? "Switch to light mode for better visibility in bright environments"
+                    : "Switch to dark mode for better visibility in low-light environments"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
         {/* Actions: Logout at the bottom */}
         <View style={styles.logoutButtonContainer}>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -540,387 +620,421 @@ export default function UserProfile() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F9FA",
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    flexGrow: 1,
-  },
-  header: {
-    backgroundColor: "#fff",
-    paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  logo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  logoImage: {
-    width: "100%",
-    height: "100%",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1F2937",
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 20,
-  },
-  avatarContainer: {
-    position: "relative",
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  avatarPlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  editIcon: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "#3B82F6",
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#fff",
-  },
-  name: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#1F2937",
-    marginBottom: 8,
-  },
-  badge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#3B82F6",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-    marginLeft: 4,
-  },
-  section: {
-    margin: 20,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F2937",
-  },
-  editButton: {
-    padding: 8,
-  },
-  editActions: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  cancelButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-  },
-  cancelText: {
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  saveButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#3B82F6",
-    minWidth: 60,
-    alignItems: "center",
-  },
-  saveButtonDisabled: {
-    backgroundColor: "#9CA3AF",
-  },
-  saveText: {
-    color: "#fff",
-    fontWeight: "500",
-  },
-  infoCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
+const createStyles = (theme: any) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      flexGrow: 1,
+    },
+    // Header
+    headerContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: 15,
+      marginBottom: 10,
+    },
+    logo_header: {
+      width: 40,
+      height: 40,
+      marginRight: 12,
+    },
+    title_header: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: theme.colors.text,
+    },
+    header: {
+      paddingTop: 60,
+      paddingBottom: 30,
+      alignItems: "center",
+      marginBottom: 20,
+    },
+    logo: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      overflow: "hidden",
+      marginBottom: 12,
+    },
+    logoImage: {
+      width: "100%",
+      height: "100%",
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: "bold",
+      color: theme.colors.text,
+      marginBottom: 4,
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      marginBottom: 20,
+    },
+    avatarContainer: {
+      position: "relative",
+      marginBottom: 16,
+    },
+    avatar: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+    },
+    avatarPlaceholder: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      backgroundColor: theme.colors.surfaceVariant,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    editIcon: {
+      position: "absolute",
+      bottom: 0,
+      right: 0,
+      backgroundColor: theme.colors.primary,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      justifyContent: "center",
+      alignItems: "center",
+      borderWidth: 2,
+      borderColor: theme.colors.onPrimary,
+    },
+    name: {
+      fontSize: 20,
+      fontWeight: "600",
+      color: theme.colors.text,
+      marginBottom: 8,
+    },
+    badge: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.colors.primary,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+    },
+    badgeText: {
+      color: theme.colors.onPrimary,
+      fontSize: 12,
+      fontWeight: "500",
+      marginLeft: 4,
+    },
+    section: {
+      margin: 20,
+    },
+    sectionHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: theme.colors.text,
+    },
+    editButton: {
+      padding: 8,
+    },
+    editActions: {
+      flexDirection: "row",
+      gap: 12,
+    },
+    cancelButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+    },
+    cancelText: {
+      color: theme.colors.textSecondary,
+      fontWeight: "500",
+    },
+    saveButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: theme.colors.primary,
+      minWidth: 60,
+      alignItems: "center",
+    },
+    saveButtonDisabled: {
+      backgroundColor: theme.colors.textMuted,
+    },
+    saveText: {
+      color: theme.colors.onPrimary,
+      fontWeight: "500",
+    },
+    infoCard: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 12,
+      padding: 16,
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 1,
+      },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    infoRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      paddingVertical: 12,
+    },
+    infoContent: {
+      flex: 1,
+      marginLeft: 12,
+    },
+    infoLabel: {
+      fontSize: 12,
+      color: theme.colors.textSecondary,
+      marginBottom: 4,
+      textTransform: "uppercase",
+      fontWeight: "500",
+    },
+    infoText: {
+      fontSize: 16,
+      color: theme.colors.text,
+    },
+    infoInput: {
+      fontSize: 16,
+      color: theme.colors.text,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.inputBorder,
+      paddingVertical: 4,
+    },
+    datePickerButton: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.inputBorder,
+      paddingVertical: 8,
+    },
+    datePickerText: {
+      fontSize: 16,
+      color: theme.colors.text,
+    },
+    divider: {
       height: 1,
+      backgroundColor: theme.colors.divider,
+      marginHorizontal: -16,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    paddingVertical: 12,
-  },
-  infoContent: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 4,
-    textTransform: "uppercase",
-    fontWeight: "500",
-  },
-  infoText: {
-    fontSize: 16,
-    color: "#1F2937",
-  },
-  infoInput: {
-    fontSize: 16,
-    color: "#1F2937",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    paddingVertical: 4,
-  },
-  datePickerButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    paddingVertical: 8,
-  },
-  datePickerText: {
-    fontSize: 16,
-    color: "#1F2937",
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#F3F4F6",
-    marginHorizontal: -16,
-  },
-  genderContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
-  },
-  genderButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#3B82F6",
-    gap: 6,
-  },
-  genderButtonActive: {
-    backgroundColor: "#3B82F6",
-  },
-  genderText: {
-    color: "#3B82F6",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  genderTextActive: {
-    color: "#fff",
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
+    genderContainer: {
+      flexDirection: "row",
+      gap: 12,
+      marginTop: 8,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  actionText: {
-    flex: 1,
-    fontSize: 16,
-    color: "#1F2937",
-    marginLeft: 12,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    width: "90%",
-    maxWidth: 400,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#1F2937",
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  modalBody: {
-    padding: 20,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#374151",
-    marginBottom: 8,
-  },
-  modalInput: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    color: "#1F2937",
-  },
-  modalFooter: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 12,
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-  },
-  modalCancelButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-  },
-  modalCancelText: {
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  modalSubmitButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#3B82F6",
-  },
-  modalSubmitText: {
-    color: "#fff",
-    fontWeight: "500",
-  },
-  loadingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingContainer: {
-    backgroundColor: "#fff",
-    padding: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
+    genderButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.colors.primary,
+      gap: 6,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#374151",
-    fontWeight: "500",
-  },
-  logoutButtonContainer: {
-    marginHorizontal: 20,
-    marginBottom: 40,
-    marginTop: 16,
-  },
-  logoutButton: {
-    backgroundColor: '#EF4444',
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  logoutButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 18,
-    paddingHorizontal: 24,
-  },
-  logoutButtonIcon: {
-    marginRight: 12,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    padding: 8,
-    borderRadius: 12,
-  },
-  logoutButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-});
+    genderButtonActive: {
+      backgroundColor: theme.colors.primary,
+    },
+    genderText: {
+      color: theme.colors.primary,
+      fontSize: 14,
+      fontWeight: "500",
+    },
+    genderTextActive: {
+      color: theme.colors.onPrimary,
+    },
+    actionButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.colors.card,
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 12,
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 1,
+      },
+      shadowOpacity: 0.05,
+      shadowRadius: 2,
+      elevation: 1,
+    },
+    actionText: {
+      flex: 1,
+      fontSize: 16,
+      color: theme.colors.text,
+      marginLeft: 12,
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    modalContent: {
+      backgroundColor: theme.colors.card,
+      borderRadius: 16,
+      width: "90%",
+      maxWidth: 400,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: 20,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.divider,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: "600",
+      color: theme.colors.text,
+    },
+    modalCloseButton: {
+      padding: 4,
+    },
+    modalBody: {
+      padding: 20,
+    },
+    inputGroup: {
+      marginBottom: 16,
+    },
+    inputLabel: {
+      fontSize: 14,
+      fontWeight: "500",
+      color: theme.colors.textSecondary,
+      marginBottom: 8,
+    },
+    modalInput: {
+      borderWidth: 1,
+      borderColor: theme.colors.inputBorder,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      fontSize: 16,
+      color: theme.colors.text,
+    },
+    modalFooter: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      gap: 12,
+      padding: 20,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.divider,
+    },
+    modalCancelButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+    },
+    modalCancelText: {
+      color: theme.colors.textSecondary,
+      fontWeight: "500",
+    },
+    modalSubmitButton: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 8,
+      backgroundColor: theme.colors.primary,
+    },
+    modalSubmitText: {
+      color: theme.colors.onPrimary,
+      fontWeight: "500",
+    },
+    loadingOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: theme.colors.overlay,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    loadingContainer: {
+      backgroundColor: theme.colors.card,
+      padding: 24,
+      borderRadius: 12,
+      alignItems: "center",
+      shadowColor: "#000",
+      shadowOffset: {
+        width: 0,
+        height: 4,
+      },
+      shadowOpacity: 0.15,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 16,
+      color: theme.colors.text,
+      fontWeight: "500",
+    },
+    logoutButtonContainer: {
+      marginHorizontal: 20,
+      marginBottom: 40,
+      marginTop: 16,
+    },
+    logoutButton: {
+      backgroundColor: theme.colors.error,
+      borderRadius: 20,
+      overflow: "hidden",
+      shadowColor: theme.colors.error,
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      elevation: 8,
+    },
+    logoutButtonContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 18,
+      paddingHorizontal: 24,
+    },
+    logoutButtonIcon: {
+      marginRight: 12,
+      backgroundColor: theme.colors.onPrimary + "20",
+      padding: 8,
+      borderRadius: 12,
+    },
+    logoutButtonText: {
+      color: theme.colors.onPrimary,
+      fontSize: 18,
+      fontWeight: "700",
+    },
+    // Theme toggle styles
+    themeToggleContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 8,
+      marginBottom: 8,
+    },
+    themeToggleText: {
+      fontSize: 16,
+      fontWeight: "500",
+      color: theme.colors.text,
+    },
+    themeDescription: {
+      fontSize: 12,
+      lineHeight: 16,
+      marginTop: 4,
+      color: theme.colors.textMuted,
+    },
+  });

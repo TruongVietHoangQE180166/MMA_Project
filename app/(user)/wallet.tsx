@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { usePaymentStore } from "../../store/paymentStore";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { width } = Dimensions.get("window");
 
@@ -45,6 +46,9 @@ const FinanceScreen = () => {
     getPaymentHistory,
     reset,
   } = usePaymentStore();
+
+  const { theme, isDark } = useTheme();
+  const styles = createStyles(theme);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -116,7 +120,7 @@ const FinanceScreen = () => {
                 : "arrow-down-right"
             }
             size={18}
-            color={item.paymentStatus === "SUCCESS" ? "#10B981" : "#EF4444"}
+            color={item.paymentStatus === "SUCCESS" ? theme.colors.success : theme.colors.error}
           />
         </View>
         <View style={styles.transactionDetails}>
@@ -130,7 +134,7 @@ const FinanceScreen = () => {
         <Text
           style={[
             styles.transactionAmount,
-            { color: item.paymentStatus === "SUCCESS" ? "#10B981" : "#EF4444" },
+            { color: item.paymentStatus === "SUCCESS" ? theme.colors.success : theme.colors.error },
           ]}
         >
           +{item.amount.toLocaleString()} VND
@@ -142,8 +146,7 @@ const FinanceScreen = () => {
           style={[
             styles.statusBadge,
             {
-              backgroundColor:
-                item.paymentStatus === "SUCCESS" ? "#E8F8E8" : "#FFF5F5",
+              backgroundColor: item.paymentStatus === "SUCCESS" ? theme.colors.success + '20' : theme.colors.error + '20',
               alignSelf: "flex-end",
               marginTop: 4,
             },
@@ -152,7 +155,7 @@ const FinanceScreen = () => {
           <Text
             style={[
               styles.statusText,
-              { color: item.paymentStatus === "SUCCESS" ? "#10B981" : "#EF4444" },
+              { color: item.paymentStatus === "SUCCESS" ? theme.colors.success : theme.colors.error },
             ]}
           >
             {item.paymentStatus === "SUCCESS" ? "Success" : "Failed"}
@@ -167,7 +170,7 @@ const FinanceScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFE" />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.background} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContentContainer}
@@ -187,7 +190,7 @@ const FinanceScreen = () => {
           <View style={styles.balanceHeader}>
             <Text style={styles.balanceLabel}>Your Study-point</Text>
             <View style={styles.walletIconContainer}>
-              <Feather name="star" size={20} color="#6366F1" />
+              <Feather name="star" size={20} color={theme.colors.primary} />
             </View>
           </View>
           <Text style={styles.balanceAmount}>{point?.toLocaleString()} points</Text>
@@ -206,7 +209,7 @@ const FinanceScreen = () => {
           >
             <View style={styles.buttonContent}>
               <View style={styles.buttonIcon}>
-                <Feather name="plus" size={24} color="white" />
+                <Feather name="plus" size={24} color={theme.colors.onPrimary} />
               </View>
               <Text style={styles.depositButtonText}>Top-up Study-point</Text>
             </View>
@@ -230,9 +233,9 @@ const FinanceScreen = () => {
                 style={{ opacity: currentPage === 1 ? 0.5 : 1, marginRight: 12 }}
                 disabled={currentPage === 1}
               >
-                <Feather name="chevron-left" size={20} color="#6366F1" />
+                <Feather name="chevron-left" size={20} color={theme.colors.primary} />
               </TouchableOpacity>
-              <Text style={{ fontSize: 14, color: '#4A90E2', fontWeight: '600' }}>
+              <Text style={{ fontSize: 14, color: theme.colors.primary, fontWeight: '600' }}>
                 Page {currentPage} / {Math.ceil(totalElement / pageSize) || 1}
               </Text>
               <TouchableOpacity
@@ -246,7 +249,7 @@ const FinanceScreen = () => {
                 style={{ opacity: currentPage === Math.ceil(totalElement / pageSize) ? 0.5 : 1, marginLeft: 12 }}
                 disabled={currentPage === Math.ceil(totalElement / pageSize)}
               >
-                <Feather name="chevron-right" size={20} color="#6366F1" />
+                <Feather name="chevron-right" size={20} color={theme.colors.primary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -260,7 +263,7 @@ const FinanceScreen = () => {
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={
                 <View style={styles.emptyState}>
-                  <Feather name="credit-card" size={48} color="#D1D5DB" />
+                  <Feather name="credit-card" size={48} color={theme.colors.textMuted} />
                   <Text style={styles.emptyText}>No transactions yet</Text>
                   <Text style={styles.emptySubText}>
                     Deposit points to start
@@ -282,7 +285,7 @@ const FinanceScreen = () => {
                 onPress={() => setShowAmountModal(false)}
                 style={styles.closeButton}
               >
-                <Feather name="x" size={24} color="#6B7280" />
+                <Feather name="x" size={24} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -297,6 +300,8 @@ const FinanceScreen = () => {
                   setInputError("");
                 }}
                 autoFocus
+                placeholderTextColor={theme.colors.placeholder}
+                selectionColor={theme.colors.primary}
               />
 
               <View style={styles.quickAmountContainer}>
@@ -321,8 +326,7 @@ const FinanceScreen = () => {
                 Number(amountInput) % 1000 === 0 && (
                   <View style={styles.conversionInfo}>
                     <Text style={styles.conversionText}>
-                      Points you will receive:{" "}
-                      {Math.floor(Number(amountInput) / 1000)} points
+                      Points you will receive: {Math.floor(Number(amountInput) / 1000)} points
                     </Text>
                   </View>
                 )}
@@ -344,7 +348,7 @@ const FinanceScreen = () => {
                 style={styles.confirmButton}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={theme.colors.onPrimary} />
                 ) : (
                   <Text style={styles.confirmButtonText}>Continue</Text>
                 )}
@@ -371,7 +375,7 @@ const FinanceScreen = () => {
 
             <View style={styles.qrContainer}>
               {loading ? (
-                <ActivityIndicator size="large" color="#6366F1" />
+                <ActivityIndicator size="large" color={theme.colors.primary} />
               ) : (
                 paymentResult &&
                 paymentResult.data &&
@@ -401,7 +405,7 @@ const FinanceScreen = () => {
                 style={styles.confirmPaymentButton}
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color={theme.colors.onPrimary} />
                 ) : (
                   <Text style={styles.confirmPaymentText}>
                     Confirm payment
@@ -429,11 +433,10 @@ const FinanceScreen = () => {
   );
 };
 
-
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFE",
+    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
@@ -443,8 +446,6 @@ const styles = StyleSheet.create({
   scrollContentContainer: {
     paddingBottom: 120,
   },
-
-  // Header
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -459,20 +460,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#2C3E50",
+    color: theme.colors.text,
   },
   balanceCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.card,
     marginTop: -10,
     padding: 28,
     borderRadius: 24,
-    shadowColor: "#6366F1",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 24,
     elevation: 10,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: theme.colors.outline,
   },
   balanceHeader: {
     flexDirection: "row",
@@ -482,28 +483,28 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     fontSize: 15,
-    color: "#64748B",
+    color: theme.colors.textSecondary,
     fontWeight: "500",
   },
   walletIconContainer: {
-    backgroundColor: "#E6F0FA",
+    backgroundColor: theme.colors.surfaceVariant,
     padding: 10,
     borderRadius: 12,
   },
   balanceAmount: {
     fontSize: 40,
     fontWeight: "800",
-    color: "#1E293B",
+    color: theme.colors.text,
     marginBottom: 8,
   },
   balanceFooter: {
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: "#F1F5F9",
+    borderTopColor: theme.colors.divider,
   },
   equivalentText: {
     fontSize: 14,
-    color: "#4A90E2",
+    color: theme.colors.primary,
     fontWeight: "600",
   },
   actionContainer: {
@@ -511,10 +512,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   depositButton: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#4A90E2",
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -529,28 +530,28 @@ const styles = StyleSheet.create({
   },
   buttonIcon: {
     marginRight: 12,
-    backgroundColor: "rgba(74,144,226,0.12)",
+    backgroundColor: theme.colors.primary + '20',
     padding: 8,
     borderRadius: 12,
   },
   depositButtonText: {
-    color: "white",
+    color: theme.colors.onPrimary,
     fontSize: 18,
     fontWeight: "700",
   },
   historySection: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.card,
     marginTop: 8,
     marginBottom: 30,
     borderRadius: 20,
     padding: 24,
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 6,
     borderWidth: 1,
-    borderColor: "#F1F5F9",
+    borderColor: theme.colors.outline,
   },
   historySectionHeader: {
     flexDirection: "row",
@@ -561,19 +562,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1E293B",
+    color: theme.colors.text,
   },
   viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E6F0FA",
+    backgroundColor: theme.colors.surfaceVariant,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
   viewAllText: {
     fontSize: 14,
-    color: "#4A90E2",
+    color: theme.colors.primary,
     fontWeight: "600",
     marginRight: 4,
   },
@@ -598,6 +599,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
+    backgroundColor: theme.colors.surfaceVariant,
   },
   transactionDetails: {
     flex: 1,
@@ -605,12 +607,12 @@ const styles = StyleSheet.create({
   transactionType: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1E293B",
+    color: theme.colors.text,
     marginBottom: 6,
   },
   transactionMethod: {
     fontSize: 13,
-    color: "#64748B",
+    color: theme.colors.textSecondary,
     fontWeight: "500",
   },
   statusBadge: {
@@ -632,12 +634,12 @@ const styles = StyleSheet.create({
   },
   transactionPoints: {
     fontSize: 12,
-    color: "#64748B",
+    color: theme.colors.textSecondary,
     fontWeight: "500",
   },
   separator: {
     height: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: theme.colors.divider,
     marginVertical: 8,
   },
   emptyState: {
@@ -646,23 +648,23 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#64748B",
+    color: theme.colors.textSecondary,
     fontWeight: "600",
     marginTop: 16,
   },
   emptySubText: {
     fontSize: 14,
-    color: "#94A3B8",
+    color: theme.colors.textMuted,
     marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: theme.colors.overlay,
     justifyContent: "center",
     alignItems: "center",
   },
   modalContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.card,
     borderRadius: 24,
     padding: 24,
     width: width - 40,
@@ -677,7 +679,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1E293B",
+    color: theme.colors.text,
   },
   closeButton: {
     padding: 4,
@@ -688,21 +690,23 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   amountInput: {
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: theme.colors.inputBorder,
     borderRadius: 16,
     padding: 16,
     fontSize: 18,
     textAlign: "center",
     fontWeight: "600",
     marginBottom: 16,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.inputBackground,
   },
   inputError: {
-    borderColor: "#EF4444",
+    borderColor: theme.colors.error,
   },
   quickAmountContainer: {
     flexDirection: "row",
@@ -711,7 +715,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   quickAmountButton: {
-    backgroundColor: "#F3F4F6",
+    backgroundColor: theme.colors.surfaceVariant,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
@@ -722,28 +726,28 @@ const styles = StyleSheet.create({
   quickAmountText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: theme.colors.text,
   },
   ruleText: {
     fontSize: 12,
-    color: "#6B7280",
+    color: theme.colors.textSecondary,
     textAlign: "center",
     marginBottom: 8,
   },
   conversionInfo: {
-    backgroundColor: "#E6F0FA",
+    backgroundColor: theme.colors.surfaceVariant,
     padding: 12,
     borderRadius: 12,
     marginBottom: 8,
   },
   conversionText: {
     fontSize: 14,
-    color: "#6366F1",
+    color: theme.colors.primary,
     fontWeight: "600",
     textAlign: "center",
   },
   errorText: {
-    color: "#EF4444",
+    color: theme.colors.error,
     fontSize: 12,
     textAlign: "center",
     marginTop: 8,
@@ -756,30 +760,30 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: theme.colors.surfaceVariant,
     marginRight: 8,
     alignItems: "center",
   },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#374151",
+    color: theme.colors.text,
   },
   confirmButton: {
     flex: 1,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     marginLeft: 8,
     alignItems: "center",
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: theme.colors.onPrimary,
   },
   qrModalContainer: {
-    backgroundColor: "#fff",
+    backgroundColor: theme.colors.card,
     borderRadius: 24,
     padding: 24,
     width: width - 40,
@@ -793,12 +797,12 @@ const styles = StyleSheet.create({
   qrModalTitle: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#1E293B",
+    color: theme.colors.text,
     marginBottom: 8,
   },
   qrModalSubtitle: {
     fontSize: 16,
-    color: "#4A90E2",
+    color: theme.colors.primary,
     fontWeight: "600",
   },
   qrContainer: {
@@ -811,7 +815,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   noteContainer: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: theme.colors.surfaceVariant,
     padding: 16,
     borderRadius: 12,
     marginBottom: 24,
@@ -819,26 +823,26 @@ const styles = StyleSheet.create({
   },
   noteLabel: {
     fontSize: 14,
-    color: "#64748B",
+    color: theme.colors.textSecondary,
     marginBottom: 4,
   },
   noteContent: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1E293B",
+    color: theme.colors.text,
   },
   qrActions: {
     width: "100%",
   },
   confirmPaymentButton: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     borderRadius: 16,
     padding: 16,
     alignItems: "center",
     marginBottom: 12,
   },
   confirmPaymentText: {
-    color: "#FFFFFF",
+    color: theme.colors.onPrimary,
     fontSize: 16,
     fontWeight: "600",
   },
@@ -847,7 +851,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   closeQRText: {
-    color: "#6B7280",
+    color: theme.colors.textSecondary,
     fontSize: 14,
     fontWeight: "500",
   },

@@ -6,6 +6,7 @@ import { Feather } from '@expo/vector-icons';
 import { useSessionStore } from "../../store/sessionStore";
 import { useFocusEffect } from '@react-navigation/native';
 import { SessionUserItem } from "../../types/session";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const { width } = require('react-native').Dimensions.get('window');
 
@@ -17,6 +18,8 @@ function formatHourMinute(totalMinutes: number) {
 }
 
 const StatisticalTab = () => {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
 
@@ -334,10 +337,10 @@ const StatisticalTab = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFE',
+    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
@@ -362,21 +365,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#2C3E50',
+    color: theme.colors.text,
   },
   // Stats Card
   statsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.card,
     marginTop: -10,
     padding: 28,
     borderRadius: 24,
-    shadowColor: '#6366F1',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.15,
     shadowRadius: 24,
     elevation: 10,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: theme.colors.outline,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -396,7 +399,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#7F8C8D',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 4,
     fontWeight: '500',
@@ -404,22 +407,22 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2C3E50',
+    color: theme.colors.text,
     textAlign: 'center',
   },
   // Chart Section
   chartSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.card,
     marginTop: 20,
     borderRadius: 20,
     padding: 20,
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: theme.colors.outline,
   },
   chartContainer: {
     flex: 1,
@@ -427,7 +430,7 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#2C3E50',
+    color: theme.colors.text,
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -462,27 +465,27 @@ const styles = StyleSheet.create({
   legendSubject: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#2C3E50',
+    color: theme.colors.text,
   },
   legendHours: {
     fontSize: 12,
-    color: '#95A5A6',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   // Sessions Section
   sessionsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.card,
     marginTop: 20,
     marginBottom: 30,
     borderRadius: 20,
     padding: 24,
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
     elevation: 6,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: theme.colors.outline,
   },
   sessionsSectionHeader: {
     flexDirection: 'row',
@@ -493,19 +496,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1E293B',
+    color: theme.colors.text,
   },
   viewAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E6F0FA',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
   },
   viewAllText: {
     fontSize: 14,
-    color: '#4A90E2',
+    color: theme.colors.onPrimary,
     fontWeight: '600',
     marginRight: 4,
   },
@@ -515,17 +518,17 @@ const styles = StyleSheet.create({
   sessionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFE',
+    backgroundColor: theme.colors.surfaceVariant,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#4A90E2',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: theme.colors.outline,
   },
   sessionContent: {
     flexDirection: 'row',
@@ -546,7 +549,7 @@ const styles = StyleSheet.create({
   sessionSubject: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#2C3E50',
+    color: theme.colors.text,
     flex: 1,
   },
   statusBadge: {
@@ -560,7 +563,7 @@ const styles = StyleSheet.create({
   },
   sessionDate: {
     fontSize: 12,
-    color: '#95A5A6',
+    color: theme.colors.textSecondary,
     marginBottom: 6,
   },
   sessionMeta: {
@@ -569,24 +572,24 @@ const styles = StyleSheet.create({
   },
   sessionTime: {
     fontSize: 12,
-    color: '#95A5A6',
+    color: theme.colors.textSecondary,
     marginLeft: 6,
   },
   sessionDot: {
     fontSize: 12,
-    color: '#95A5A6',
+    color: theme.colors.textSecondary,
     marginHorizontal: 8,
   },
   sessionDuration: {
     fontSize: 12,
-    color: '#95A5A6',
+    color: theme.colors.textSecondary,
   },
   sessionStats: {
     alignItems: 'center',
   },
   sessionSeparator: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: theme.colors.outline,
     marginVertical: 4,
   },
   // Empty state
@@ -598,13 +601,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#64748B',
+    color: theme.colors.textSecondary,
     fontWeight: '600',
     marginTop: 16,
   },
   emptySubText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
 });

@@ -4,6 +4,7 @@ import { FontAwesome6, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
 import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/authStore';
+import { ThemeProvider, useTheme } from '../../contexts/ThemeContext';
 
 // Type definitions
 interface TabBarIconProps {
@@ -55,22 +56,14 @@ interface TabBarIconStyleConfig {
   marginBottom: number;
 }
 
-export default function UserLayout() {
-  const { isAuthenticated, user } = useAuthStore();
-
-  if (!isAuthenticated) {
-    return <Redirect href="/(auth)/login" />;
-  }
-
-  if (user?.role !== 'USER') {
-    return <Redirect href="/" />;
-  }
+function TabsWithTheme() {
+  const { theme } = useTheme();
 
   const tabBarStyle = {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: theme.colors.surface,
     borderTopWidth: 0,
     elevation: 20,
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadowColor,
     shadowOffset: {
       width: 0,
       height: -4,
@@ -104,8 +97,8 @@ export default function UserLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primary,
-        tabBarInactiveTintColor: '#8E8E93',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textMuted,
         headerShown: false,
         tabBarLabelPosition: 'below-icon',
         tabBarStyle,
@@ -174,6 +167,24 @@ export default function UserLayout() {
         }}
       />
     </Tabs>
+  );
+}
+
+export default function UserLayout() {
+  const { isAuthenticated, user } = useAuthStore();
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  if (user?.role !== 'USER') {
+    return <Redirect href="/" />;
+  }
+
+  return (
+    <ThemeProvider>
+      <TabsWithTheme />
+    </ThemeProvider>
   );
 }
 
