@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSessionStore } from "../../store/sessionStore";
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -49,6 +50,8 @@ function formatHourMinute(totalMinutes: number) {
 
 export default function CreateSession() {
   const router = useRouter();
+  const { theme, isDark } = useTheme();
+  const styles = createStyles(theme);
   const [hours, setHours] = useState(1);
   const [minutes, setMinutes] = useState(0);
   const [cameraAI, setCameraAI] = useState(true);
@@ -201,7 +204,7 @@ export default function CreateSession() {
             style={styles.closeButton}
             onPress={() => navigate.back()}
           >
-            <MaterialCommunityIcons name="close" size={26} color="#FFF" />
+            <MaterialCommunityIcons name="close" size={26} color={theme.colors.onPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -225,7 +228,7 @@ export default function CreateSession() {
               <MaterialCommunityIcons
                 name="book-open-variant"
                 size={20}
-                color="#4A90E2"
+                color={theme.colors.primary}
               />{" "}
               Choose Subject
             </Text>
@@ -251,7 +254,7 @@ export default function CreateSession() {
                         styles.subjectIcon,
                         selectedSubject.id === subject.id &&
                           !showCustomInput && {
-                            backgroundColor: `${subject.color}20`,
+                            backgroundColor: subject.color + '20',
                           },
                       ]}
                     >
@@ -261,7 +264,7 @@ export default function CreateSession() {
                         color={
                           selectedSubject.id === subject.id && !showCustomInput
                             ? subject.color
-                            : "#A0AEC0"
+                            : theme.colors.textMuted
                         }
                       />
                     </View>
@@ -293,13 +296,13 @@ export default function CreateSession() {
                     style={[
                       styles.subjectIcon,
                       styles.addCustomIcon,
-                      showCustomInput && { backgroundColor: "#6C63FF20" },
+                      showCustomInput && { backgroundColor: theme.colors.primary + '20' },
                     ]}
                   >
                     <MaterialCommunityIcons
                       name="plus"
                       size={24}
-                      color={showCustomInput ? "#6C63FF" : "#A0AEC0"}
+                      color={showCustomInput ? theme.colors.primary : theme.colors.textMuted}
                     />
                   </View>
                   <Text
@@ -307,7 +310,7 @@ export default function CreateSession() {
                       styles.subjectText,
                       styles.addCustomText,
                       showCustomInput && {
-                        color: "#6C63FF",
+                        color: theme.colors.primary,
                         fontWeight: "bold",
                       },
                     ]}
@@ -336,7 +339,7 @@ export default function CreateSession() {
                     setCustomSubjectError("");
                   }}
                   maxLength={30}
-                  placeholderTextColor="#A0AEC0"
+                  placeholderTextColor={theme.colors.placeholder}
                   autoFocus={true}
                 />
                 {customSubjectError ? (
@@ -354,7 +357,7 @@ export default function CreateSession() {
               <MaterialCommunityIcons
                 name="clock-outline"
                 size={20}
-                color="#4A90E2"
+                color={theme.colors.primary}
               />{" "}
               Study Duration
             </Text>
@@ -373,7 +376,7 @@ export default function CreateSession() {
                     <MaterialCommunityIcons
                       name="chevron-up"
                       size={28}
-                      color="#FFF"
+                      color={theme.colors.onPrimary}
                     />
                   </TouchableOpacity>
 
@@ -392,7 +395,7 @@ export default function CreateSession() {
                     <MaterialCommunityIcons
                       name="chevron-down"
                       size={28}
-                      color="#FFF"
+                      color={theme.colors.onPrimary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -415,7 +418,7 @@ export default function CreateSession() {
                     <MaterialCommunityIcons
                       name="chevron-up"
                       size={28}
-                      color="#FFF"
+                      color={theme.colors.onPrimary}
                     />
                   </TouchableOpacity>
 
@@ -434,7 +437,7 @@ export default function CreateSession() {
                     <MaterialCommunityIcons
                       name="chevron-down"
                       size={28}
-                      color="#FFF"
+                      color={theme.colors.onPrimary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -461,7 +464,7 @@ export default function CreateSession() {
 
             {/* Total Time Display */}
             <View style={styles.totalTimeContainer}>
-              <MaterialCommunityIcons name="timer" size={20} color="#4A90E2" />
+              <MaterialCommunityIcons name="timer" size={20} color={theme.colors.primary} />
               <Text style={styles.totalTimeText}>
                 Total:{" "}
                 {totalMinutes > 0
@@ -479,7 +482,7 @@ export default function CreateSession() {
                   <MaterialCommunityIcons
                     name="camera"
                     size={28}
-                    color="#4A90E2"
+                    color={theme.colors.primary}
                   />
                 </View>
                 <View style={styles.cameraText}>
@@ -492,8 +495,8 @@ export default function CreateSession() {
               <Switch
                 value={cameraAI}
                 onValueChange={setCameraAI}
-                trackColor={{ false: "#E0E0E0", true: "#4A90E2" }}
-                thumbColor={"#FFFFFF"}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                thumbColor={theme.colors.surface}
                 style={styles.switch}
               />
             </View>
@@ -505,7 +508,7 @@ export default function CreateSession() {
               <MaterialCommunityIcons
                 name="shield-alert"
                 size={20}
-                color="#FF6B6B"
+                color={theme.colors.error}
               />{" "}
               Penalty Rules
             </Text>
@@ -515,7 +518,7 @@ export default function CreateSession() {
                   <MaterialCommunityIcons
                     name="exit-to-app"
                     size={20}
-                    color="#FF6B6B"
+                    color={theme.colors.error}
                   />
                 </View>
                 <Text style={styles.violationText}>Exit app: -100 points</Text>
@@ -525,7 +528,7 @@ export default function CreateSession() {
                   <MaterialCommunityIcons
                     name="eye-off"
                     size={20}
-                    color="#FF9500"
+                    color={theme.colors.warning}
                   />
                 </View>
                 <Text style={styles.violationText}>Lose focus: -50 points</Text>
@@ -535,7 +538,7 @@ export default function CreateSession() {
                   <MaterialCommunityIcons
                     name="cellphone"
                     size={20}
-                    color="#FF6B6B"
+                    color={theme.colors.error}
                   />
                 </View>
                 <Text style={styles.violationText}>
@@ -560,37 +563,37 @@ export default function CreateSession() {
           <MaterialCommunityIcons
             name="rocket-launch"
             size={24}
-            color="#FFF"
+            color={theme.colors.onPrimary}
             style={styles.buttonIcon}
           />
           <Text style={styles.startButtonText}>
             {isLoading ? "Loading..." : "Start Study Session"}
           </Text>
-          {isLoading && <ActivityIndicator size="small" color="#FFF" style={{ marginLeft: 8 }} />}
+          {isLoading && <ActivityIndicator size="small" color={theme.colors.onPrimary} style={{ marginLeft: 8 }} />}
         </TouchableOpacity>
       </View>
       {/* Modal xác nhận bắt đầu học */}
       <Modal visible={showConfirmModal} transparent animationType="fade">
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
-          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, alignItems: 'center', width: 300 }}>
-            <MaterialCommunityIcons name="rocket-launch" size={40} color="#4A90E2" style={{ marginBottom: 12 }} />
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>Start Study Session?</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.overlay }}>
+          <View style={{ backgroundColor: theme.colors.card, borderRadius: 16, padding: 24, alignItems: 'center', width: 300 }}>
+            <MaterialCommunityIcons name="rocket-launch" size={40} color={theme.colors.primary} style={{ marginBottom: 12 }} />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: theme.colors.text }}>Start Study Session?</Text>
             {/* Hiển thị subject và thời gian */}
-            <Text style={{ fontSize: 16, color: '#4A90E2', fontWeight: 'bold', marginBottom: 4 }}>
+            <Text style={{ fontSize: 16, color: theme.colors.primary, fontWeight: 'bold', marginBottom: 4 }}>
               Subject: {showCustomInput && customSubject.trim() !== "" ? customSubject : selectedSubject.name}
             </Text>
-            <Text style={{ fontSize: 15, color: '#333', marginBottom: 16 }}>
+            <Text style={{ fontSize: 15, color: theme.colors.text, marginBottom: 16 }}>
               Duration: {formatHourMinute(hours * 60 + minutes)}
             </Text>
-            <Text style={{ fontSize: 15, color: '#666', marginBottom: 20, textAlign: 'center' }}>
+            <Text style={{ fontSize: 15, color: theme.colors.textSecondary, marginBottom: 20, textAlign: 'center' }}>
               Are you sure you want to start this study session?
             </Text>
             <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between' }}>
               <TouchableOpacity
-                style={[styles.startButton, { backgroundColor: '#e0e0e0', flex: 1, marginRight: 8 }]}
+                style={[styles.startButton, { backgroundColor: theme.colors.surfaceVariant, flex: 1, marginRight: 8 }]}
                 onPress={() => setShowConfirmModal(false)}
               >
-                <Text style={{ color: '#333', fontWeight: 'bold' }}>Cancel</Text>
+                <Text style={{ color: theme.colors.text, fontWeight: 'bold' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.startButton, { flex: 1, marginLeft: 8 }]}
@@ -601,7 +604,7 @@ export default function CreateSession() {
                   setIsLoading(false);
                 }}
               >
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Start</Text>
+                <Text style={{ color: theme.colors.onPrimary, fontWeight: 'bold' }}>Start</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -611,18 +614,18 @@ export default function CreateSession() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FF",
+    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     paddingTop: 50,
     paddingBottom: 25,
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
-    shadowColor: "#4A90E2",
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -639,7 +642,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   logoContainer: {
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: theme.colors.onPrimary + '20',
     borderRadius: 12,
     padding: 8,
     marginRight: 12,
@@ -651,15 +654,15 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#FFF",
+    color: theme.colors.onPrimary,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
+    color: theme.colors.onPrimary + 'CC',
     marginTop: 2,
   },
   closeButton: {
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: theme.colors.onPrimary + '20',
     borderRadius: 12,
     padding: 8,
   },
@@ -678,21 +681,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#2D3748",
+    color: theme.colors.text,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 16,
-    color: "#718096",
+    color: theme.colors.textSecondary,
     textAlign: "center",
     marginTop: 8,
   },
   card: {
-    backgroundColor: "#FFF",
+    backgroundColor: theme.colors.card,
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -701,7 +704,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#2D3748",
+    color: theme.colors.text,
     marginBottom: 16,
     flexDirection: "row",
     alignItems: "center",
@@ -719,15 +722,15 @@ const styles = StyleSheet.create({
     padding: 16,
     marginRight: 12,
     width: 100,
-    backgroundColor: "#FFF",
+    backgroundColor: theme.colors.card,
     borderWidth: 2,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.outline,
   },
   selectedSubject: {
-    backgroundColor: "#FFF",
+    backgroundColor: theme.colors.card,
     borderWidth: 2,
-    borderColor: "#4A90E2",
-    shadowColor: "#4A90E2",
+    borderColor: theme.colors.primary,
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -740,12 +743,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 8,
-    backgroundColor: "#F7FAFC",
+    backgroundColor: theme.colors.surfaceVariant,
   },
   subjectText: {
     fontSize: 10,
     fontWeight: "600",
-    color: "#718096",
+    color: theme.colors.textSecondary,
     textAlign: "center",
     flexShrink: 1,
   },
@@ -753,16 +756,16 @@ const styles = StyleSheet.create({
   // Add Custom Subject Button Styles
   addCustomButton: {
     borderStyle: "dashed",
-    borderColor: "#CBD5E0",
+    borderColor: theme.colors.outline,
   },
   addCustomIcon: {
-    backgroundColor: "#F7FAFC",
+    backgroundColor: theme.colors.surfaceVariant,
     borderWidth: 2,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.outline,
     borderStyle: "dashed",
   },
   addCustomText: {
-    color: "#A0AEC0",
+    color: theme.colors.textMuted,
     fontSize: 9,
   },
 
@@ -770,31 +773,31 @@ const styles = StyleSheet.create({
   customSubjectContainer: {
     marginTop: 20,
     padding: 16,
-    backgroundColor: "#F8F9FF",
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.outline,
   },
   customSubjectLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#2D3748",
+    color: theme.colors.text,
     marginBottom: 8,
   },
   customSubjectInput: {
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.outline,
     borderRadius: 10,
     padding: 12,
     fontSize: 16,
-    backgroundColor: "#FFF",
-    color: "#2D3748",
+    backgroundColor: theme.colors.inputBackground,
+    color: theme.colors.text,
   },
   customSubjectInputError: {
-    borderColor: "#FF6B6B",
+    borderColor: theme.colors.error,
   },
   customSubjectError: {
-    color: "#FF6B6B",
+    color: theme.colors.error,
     fontSize: 12,
     marginTop: 4,
   },
@@ -820,31 +823,31 @@ const styles = StyleSheet.create({
   colonText: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#4A90E2",
+    color: theme.colors.primary,
   },
   timeSelectorLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#2D3748",
+    color: theme.colors.text,
     marginBottom: 15,
   },
   timeInputContainer: {
     alignItems: "center",
-    backgroundColor: "#F8F9FF",
+    backgroundColor: theme.colors.background,
     borderRadius: 20,
     padding: 8,
     minWidth: 110,
     borderWidth: 2,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.outline,
   },
   timeButton: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     borderRadius: 15,
     width: 50,
     height: 50,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#4A90E2",
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -857,15 +860,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   timeValueContainer: {
-    backgroundColor: "#FFF",
+    backgroundColor: theme.colors.card,
     borderRadius: 15,
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderWidth: 2,
-    borderColor: "#4A90E2",
+    borderColor: theme.colors.primary,
     minWidth: 90,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -874,13 +877,13 @@ const styles = StyleSheet.create({
   timeValue: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#4A90E2",
+    color: theme.colors.primary,
     lineHeight: 30,
   },
   timeUnit: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#718096",
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   quickTimeSection: {
@@ -889,7 +892,7 @@ const styles = StyleSheet.create({
   quickTimeTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#718096",
+    color: theme.colors.textSecondary,
     marginBottom: 8,
   },
   quickTimeContainer: {
@@ -898,35 +901,35 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   quickTimeButton: {
-    backgroundColor: "#F8F9FF",
+    backgroundColor: theme.colors.background,
     borderRadius: 8,
     paddingVertical: 8,
     paddingHorizontal: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.outline,
     minWidth: "22%",
     alignItems: "center",
   },
   quickTimeButtonText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#4A90E2",
+    color: theme.colors.primary,
   },
   totalTimeContainer: {
-    backgroundColor: "#F8F9FF",
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.outline,
   },
   totalTimeText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#4A90E2",
+    color: theme.colors.primary,
     marginLeft: 8,
   },
 
@@ -941,7 +944,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cameraIconContainer: {
-    backgroundColor: "rgba(74, 144, 226, 0.1)",
+    backgroundColor: theme.colors.primary + '20',
     borderRadius: 12,
     padding: 12,
     marginRight: 16,
@@ -952,39 +955,39 @@ const styles = StyleSheet.create({
   cameraTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#2D3748",
+    color: theme.colors.text,
   },
   cameraDescription: {
     fontSize: 14,
-    color: "#718096",
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   switch: {
     transform: [{ scaleX: 1.2 }, { scaleY: 1.2 }],
   },
   violationContainer: {
-    backgroundColor: "#FFF",
+    backgroundColor: theme.colors.card,
   },
   violationItem: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: "#FFF8F8",
+    backgroundColor: theme.colors.error + '08',
     borderRadius: 12,
     marginBottom: 8,
     borderLeftWidth: 4,
-    borderLeftColor: "#FF6B6B",
+    borderLeftColor: theme.colors.error,
   },
   violationIcon: {
-    backgroundColor: "rgba(255, 107, 107, 0.1)",
+    backgroundColor: theme.colors.error + '20',
     borderRadius: 8,
     padding: 8,
     marginRight: 12,
   },
   violationText: {
     fontSize: 14,
-    color: "#2D3748",
+    color: theme.colors.text,
     fontWeight: "500",
   },
   buttonContainer: {
@@ -992,26 +995,26 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "#FFF",
+    backgroundColor: theme.colors.card,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 30,
     borderTopLeftRadius: 25,
     borderTopRightRadius: 25,
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
   },
   startButton: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     borderRadius: 16,
     paddingVertical: 18,
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "center",
-    shadowColor: "#4A90E2",
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1020,14 +1023,14 @@ const styles = StyleSheet.create({
   startButtonText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#FFF",
+    color: theme.colors.onPrimary,
     marginLeft: 8,
   },
   buttonIcon: {
     marginRight: 4,
   },
   disabledButton: {
-    backgroundColor: "#CBD5E0",
+    backgroundColor: theme.colors.outline,
     shadowOpacity: 0,
     elevation: 0,
   },

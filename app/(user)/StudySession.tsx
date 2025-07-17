@@ -8,6 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useSessionStore } from "../../store/sessionStore";
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,6 +25,8 @@ interface StudySessionStats {
 export default function StudySession() {
   useKeepAwake();
   const router = useRouter();
+  const { theme, isDark } = useTheme();
+  const styles = createStyles(theme);
   // Bỏ lấy sessionId từ params, chỉ lấy sessionKey nếu cần
   const { duration = "60", subject = "", sessionKey = "0", remainingSeconds, sessionId: sessionIdFromParams, isNewSession } = useLocalSearchParams();
   const { initialRemaining, initialStartTimestamp } = useMemo(() => {
@@ -458,9 +461,9 @@ export default function StudySession() {
   const progressPercent = Math.max(0, Math.min(100, ((totalStudyTime - remaining) / totalStudyTime) * 100));
 
   // Tính màu cho timer theo thời gian còn lại
-  let timerColor = '#4A90E2';
-  if (remaining <= 60) timerColor = '#FF6B6B';
-  else if (remaining <= 180) timerColor = '#FFB300';
+  let timerColor = theme.colors.primary;
+  if (remaining <= 60) timerColor = theme.colors.error;
+  else if (remaining <= 180) timerColor = theme.colors.warning;
 
   // Render
   // Tính lại thống kê thời gian foreground/background
@@ -472,9 +475,9 @@ export default function StudySession() {
   // Render loading nếu đang loading hoặc đang end early
   if (isLoading || isEnding) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f7fa' }}>
-        <ActivityIndicator size="large" color="#4A90E2" />
-        <Text style={{ marginTop: 16, color: '#4A90E2', fontWeight: 'bold' }}>{isEnding ? 'Ending session...' : 'Loading session...'}</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={{ marginTop: 16, color: theme.colors.primary, fontWeight: 'bold' }}>{isEnding ? 'Ending session...' : 'Loading session...'}</Text>
       </View>
     );
   }
@@ -489,8 +492,8 @@ export default function StudySession() {
 
         {/* Timer Circle */}
         <View style={styles.timerContainer}>
-          <View style={[styles.timerCircle, { borderColor: timerColor, shadowColor: timerColor }]}> 
-            <View style={[styles.timerInnerCircle, { borderColor: timerColor }]}> 
+          <View style={[styles.timerCircle, { borderColor: timerColor, shadowColor: timerColor, backgroundColor: theme.colors.card }]}> 
+            <View style={[styles.timerInnerCircle, { borderColor: timerColor, backgroundColor: theme.colors.background }]}> 
               <Text style={[styles.timerText, { color: timerColor }]}> 
         {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
       </Text>
@@ -516,7 +519,7 @@ export default function StudySession() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: stats.violationCount > 0 ? '#ff6b6b' : '#4A90E2' }]}>
+              <Text style={[styles.statNumber, { color: stats.violationCount > 0 ? theme.colors.error : theme.colors.primary }]}>
                 {stats.violationCount}
               </Text>
               <Text style={styles.statLabel}>Violations</Text>
@@ -526,7 +529,7 @@ export default function StudySession() {
           {/* Lịch sử rời app - luôn hiển thị */}
           <View style={styles.logsCard}>
             <View style={styles.logsHeader}>
-              <MaterialIcons name="history" size={20} color="#4A90E2" />
+              <MaterialIcons name="history" size={20} color={theme.colors.primary} />
               <Text style={styles.logsTitle}>App Exit History</Text>
             </View>
             
@@ -544,29 +547,29 @@ export default function StudySession() {
                     <MaterialIcons 
                       name={log.duration > 60 ? "warning" : "info"} 
                       size={16} 
-                      color={log.duration > 60 ? "#ff6b6b" : "#4A90E2"} 
+                      color={log.duration > 60 ? theme.colors.error : theme.colors.primary} 
                     />
                   </View>
                 ))}
               </ScrollView>
             ) : (
               <View style={styles.emptyLogs}>
-                <MaterialIcons name="check-circle" size={32} color="#4A90E2" />
-                <Text style={styles.emptyLogsText}>No app exits yet</Text>
-                <Text style={styles.emptyLogsSubtext}>Great! You are staying focused</Text>
+                <MaterialIcons name="access-time" size={40} color={theme.colors.success} style={{ marginBottom: 12 }} />
+                <Text style={[styles.emptyLogsText, { fontSize: 18 } ]}>No app exits yet</Text>
+                <Text style={[styles.emptyLogsSubtext, { color: theme.colors.success, fontSize: 15 }]}>You are super focused! Keep it up!</Text>
+              </View>
+            )}
           </View>
-        )}
-      </View>
         </View>
 
         {/* End Button */}
         <View style={styles.endButtonContainer}>
           <TouchableOpacity style={styles.endButton} onPress={handleEndEarly}>
             <LinearGradient
-              colors={['#ff6b6b', '#ee5a52']}
+              colors={[theme.colors.error, theme.colors.error]}
               style={styles.endButtonGradient}
             >
-              <MaterialIcons name="stop" size={20} color="#ffffff" />
+              <MaterialIcons name="stop" size={20} color={theme.colors.onPrimary} />
               <Text style={styles.endButtonText}>End Early</Text>
             </LinearGradient>
       </TouchableOpacity>
@@ -578,10 +581,10 @@ export default function StudySession() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             <View style={styles.celebrationIcon}>
-              {milestoneIdx === 0 && <FontAwesome5 name="rocket" size={32} color="#4A90E2" />}
-              {milestoneIdx === 1 && <MaterialIcons name="trending-up" size={32} color="#4A90E2" />}
-              {milestoneIdx === 2 && <MaterialIcons name="flag" size={32} color="#4A90E2" />}
-              {milestoneIdx === 3 && <MaterialIcons name="emoji-events" size={32} color="#4A90E2" />}
+              {milestoneIdx === 0 && <FontAwesome5 name="rocket" size={32} color={theme.colors.primary} />}
+              {milestoneIdx === 1 && <MaterialIcons name="trending-up" size={32} color={theme.colors.primary} />}
+              {milestoneIdx === 2 && <MaterialIcons name="flag" size={32} color={theme.colors.primary} />}
+              {milestoneIdx === 3 && <MaterialIcons name="emoji-events" size={32} color={theme.colors.primary} />}
             </View>
             <Text style={styles.modalTitle}>
               {milestoneIdx === 0 && 'Great start!'}
@@ -605,15 +608,15 @@ export default function StudySession() {
       <Modal visible={alertModal.show} transparent animationType="fade">
         <View style={styles.modalOverlay}>
          <View style={[styles.modalContainer, styles.alertModal, {
-           borderColor: alertModal.type === '3m' ? '#FFB300' : '#FF6B6B',
+           borderColor: alertModal.type === '3m' ? theme.colors.warning : theme.colors.error,
            borderWidth: 2
          }]}> 
            <View style={[styles.alertIcon, {
-             backgroundColor: alertModal.type === '3m' ? '#FFF8E1' : '#FFEAEA'
+             backgroundColor: alertModal.type === '3m' ? theme.colors.warning + '10' : theme.colors.error + '10'
            }]}> 
-             <MaterialIcons name="access-time" size={32} color={alertModal.type === '3m' ? '#FFB300' : '#FF6B6B'} />
+             <MaterialIcons name="access-time" size={32} color={alertModal.type === '3m' ? theme.colors.warning : theme.colors.error} />
            </View>
-           <Text style={[styles.alertTitle, { color: alertModal.type === '3m' ? '#FFB300' : '#FF6B6B' }]}> 
+           <Text style={[styles.alertTitle, { color: alertModal.type === '3m' ? theme.colors.warning : theme.colors.error }]}> 
              {alertModal.type === '3m' ? '3 minutes left!' : '1 minute left!'}
            </Text>
            <Text style={styles.alertText}>
@@ -624,12 +627,12 @@ export default function StudySession() {
            </Text>
            <TouchableOpacity 
              style={[styles.modalButton, {
-               backgroundColor: alertModal.type === '3m' ? '#FFB300' : '#FF6B6B',
+               backgroundColor: alertModal.type === '3m' ? theme.colors.warning : theme.colors.error,
                minWidth: 100
              }]} 
              onPress={() => setAlertModal({ show: false, type: null })}
            >
-             <Text style={[styles.modalButtonText, { color: '#fff' }]}>Got it</Text>
+             <Text style={[styles.modalButtonText, { color: theme.colors.onPrimary }]}>Got it</Text>
            </TouchableOpacity>
          </View>
         </View>
@@ -638,18 +641,18 @@ export default function StudySession() {
       <Modal visible={confirmEnd} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <View style={[styles.warningIcon, { borderWidth: 2, borderColor: '#FF6B6B', backgroundColor: '#FFF0F0' }]}> 
-              <MaterialIcons name="warning" size={40} color="#FF6B6B" />
+            <View style={[styles.warningIcon, { borderWidth: 2, borderColor: theme.colors.error, backgroundColor: theme.colors.error + '10' }]}> 
+              <MaterialIcons name="warning" size={40} color={theme.colors.error} />
             </View>
-            <Text style={[styles.modalTitle, { color: '#FF6B6B', fontWeight: 'bold' }]}>Early End Warning</Text>
-            <Text style={[styles.modalText, { color: '#FF6B6B', fontWeight: '600', textAlign: 'center', marginBottom: 8 }]}>Ending early will deduct 50% of your session points and add penalty points for each violation.</Text>
-            <Text style={[styles.modalText, { color: '#333', textAlign: 'center', marginBottom: 16 }]}>Are you sure you want to end the session?</Text>
+            <Text style={[styles.modalTitle, { color: theme.colors.error, fontWeight: 'bold' }]}>Early End Warning</Text>
+            <Text style={[styles.modalText, { color: theme.colors.error, fontWeight: '600', textAlign: 'center', marginBottom: 8 }]}>Ending early will deduct 50% of your session points and add penalty points for each violation.</Text>
+            <Text style={[styles.modalText, { color: theme.colors.text, textAlign: 'center', marginBottom: 16 }]}>Are you sure you want to end the session?</Text>
             <View style={styles.modalButtonRow}>
-              <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#e0e0e0', flex: 1, marginRight: 8 }]} onPress={() => setConfirmEnd(false)}>
-                <Text style={{ color: '#666', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>Cancel</Text>
+              <TouchableOpacity style={[styles.modalButton, { backgroundColor: theme.colors.surfaceVariant, flex: 1, marginRight: 8 }]} onPress={() => setConfirmEnd(false)}>
+                <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, { backgroundColor: '#FF6B6B', flex: 1, marginLeft: 8 }]} onPress={confirmEndSession}>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', textAlign: 'center' }}>End</Text>
+              <TouchableOpacity style={[styles.modalButton, { backgroundColor: theme.colors.error, flex: 1, marginLeft: 8 }]} onPress={confirmEndSession}>
+                <Text style={{ color: theme.colors.onPrimary, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>End</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -658,50 +661,58 @@ export default function StudySession() {
       
       <Modal visible={endModal} transparent animationType="fade" onRequestClose={() => {}}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContainer, styles.endModalContainer, { alignItems: 'center', paddingHorizontal: 0 }]}> 
+          <View style={[styles.modalContainer, styles.endModalContainer, { alignItems: 'center', paddingHorizontal: 16, backgroundColor: theme.colors.card }]}> 
             <View style={{ alignItems: 'center', width: '100%' }}>
               {/* Icon và tiêu đề */}
-              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#E6F7FF', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-                <MaterialIcons name="check-circle" size={36} color="#4A90E2" />
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.primary + '10', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                <MaterialIcons name="check-circle" size={36} color={theme.colors.primary} />
               </View>
-              <Text style={{ color: '#4A90E2', fontSize: 18, fontWeight: 'bold', marginBottom: 2, textAlign: 'center' }}>Session Completed!</Text>
-              <Text style={{ color: '#333', fontSize: 13, marginBottom: 12, textAlign: 'center' }}>Your results</Text>
+              <Text style={{ color: theme.colors.primary, fontSize: 18, fontWeight: 'bold', marginBottom: 2, textAlign: 'center' }}>Session Completed!</Text>
+              <Text style={{ color: theme.colors.text, fontSize: 13, marginBottom: 12, textAlign: 'center' }}>Your results</Text>
 
               {/* Stats 2 hàng */}
-              <View style={{ width: '100%', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 10 }}>
-                <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 10, padding: 10, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
-                  <MaterialIcons name="percent" size={18} color="#4A90E2" style={{ marginBottom: 2 }} />
-                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#4A90E2' }}>{Math.min(100, Math.round((totalElapsed / totalStudyTime) * 100))}%</Text>
-                  <Text style={{ fontSize: 10, color: '#666', marginTop: 2 }}>Completed</Text>
+              <View style={{ width: '100%', flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 }}>
+                <View style={{ width: '50%', padding: 6 }}>
+                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 10, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.outline }}>
+                    <MaterialIcons name="percent" size={18} color={theme.colors.primary} style={{ marginBottom: 2 }} />
+                    <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.colors.primary }}>{Math.min(100, Math.round((totalElapsed / totalStudyTime) * 100))}%</Text>
+                    <Text style={{ fontSize: 10, color: theme.colors.textSecondary, marginTop: 2 }}>Completed</Text>
+                  </View>
                 </View>
-                <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 10, padding: 10, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
-                  <MaterialIcons name="timer" size={18} color="#4A90E2" style={{ marginBottom: 2 }} />
-                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(totalLearned)}</Text>
-                  <Text style={{ fontSize: 10, color: '#666', marginTop: 2 }}>Studied</Text>
+                <View style={{ width: '50%', padding: 6 }}>
+                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 10, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.outline }}>
+                    <MaterialIcons name="timer" size={18} color={theme.colors.primary} style={{ marginBottom: 2 }} />
+                    <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.colors.primary }}>{formatShortMinSec(totalLearned)}</Text>
+                    <Text style={{ fontSize: 10, color: theme.colors.textSecondary, marginTop: 2 }}>Studied</Text>
+                  </View>
                 </View>
-                <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 10, padding: 10, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
-                  <MaterialIcons name="phone-android" size={18} color="#4A90E2" style={{ marginBottom: 2 }} />
-                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(fgTime)}</Text>
-                  <Text style={{ fontSize: 10, color: '#666', marginTop: 2 }}>In app</Text>
+                <View style={{ width: '50%', padding: 6 }}>
+                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 10, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.outline }}>
+                    <MaterialIcons name="phone-android" size={18} color={theme.colors.primary} style={{ marginBottom: 2 }} />
+                    <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.colors.primary }}>{formatShortMinSec(fgTime)}</Text>
+                    <Text style={{ fontSize: 10, color: theme.colors.textSecondary, marginTop: 2 }}>In app</Text>
+                  </View>
                 </View>
-                <View style={{ width: '48%', backgroundColor: '#F8FAFE', borderRadius: 10, padding: 10, alignItems: 'center', marginBottom: 8, borderWidth: 1, borderColor: '#F1F5F9' }}>
-                  <MaterialIcons name="exit-to-app" size={18} color="#4A90E2" style={{ marginBottom: 2 }} />
-                  <Text style={{ fontSize: 15, fontWeight: 'bold', color: '#4A90E2' }}>{formatShortMinSec(stats.totalBackgroundTime)}</Text>
-                  <Text style={{ fontSize: 10, color: '#666', marginTop: 2 }}>Out of app</Text>
+                <View style={{ width: '50%', padding: 6 }}>
+                  <View style={{ backgroundColor: theme.colors.background, borderRadius: 10, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: theme.colors.outline }}>
+                    <MaterialIcons name="exit-to-app" size={18} color={theme.colors.primary} style={{ marginBottom: 2 }} />
+                    <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.colors.primary }}>{formatShortMinSec(stats.totalBackgroundTime)}</Text>
+                    <Text style={{ fontSize: 10, color: theme.colors.textSecondary, marginTop: 2 }}>Out of app</Text>
+                  </View>
                 </View>
               </View>
 
               {/* Vi phạm & số lần thoát app */}
               <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#E6F7FF', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, marginRight: 8 }}>
-                  <MaterialIcons name="history" size={15} color="#4A90E2" style={{ marginRight: 2 }} />
-                  <Text style={{ color: '#4A90E2', fontWeight: 'bold', fontSize: 12 }}>{stats.backgroundExitCount}</Text>
-                  <Text style={{ color: '#4A90E2', fontSize: 11, marginLeft: 2 }}>app exits</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.primary + '10', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, marginRight: 8 }}>
+                  <MaterialIcons name="history" size={15} color={theme.colors.primary} style={{ marginRight: 2 }} />
+                  <Text style={{ color: theme.colors.primary, fontWeight: 'bold', fontSize: 12 }}>{stats.backgroundExitCount}</Text>
+                  <Text style={{ color: theme.colors.primary, fontSize: 11, marginLeft: 2 }}>app exits</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF0F0', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 }}>
-                  <MaterialIcons name="error-outline" size={15} color="#FF6B6B" style={{ marginRight: 2 }} />
-                  <Text style={{ color: '#FF6B6B', fontWeight: 'bold', fontSize: 12 }}>{stats.violationCount}</Text>
-                  <Text style={{ color: '#FF6B6B', fontSize: 11, marginLeft: 2 }}>violations</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.colors.error + '10', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6 }}>
+                  <MaterialIcons name="error-outline" size={15} color={theme.colors.error} style={{ marginRight: 2 }} />
+                  <Text style={{ color: theme.colors.error, fontWeight: 'bold', fontSize: 12 }}>{stats.violationCount}</Text>
+                  <Text style={{ color: theme.colors.error, fontSize: 11, marginLeft: 2 }}>violations</Text>
                 </View>
               </View>
 
@@ -714,11 +725,11 @@ export default function StudySession() {
                 router.replace("/(user)/home");
               }}>
                 <LinearGradient
-                  colors={['#4A90E2', '#4A90E2']}
+                  colors={[theme.colors.primary, theme.colors.primary]}
                   style={[styles.homeButtonGradient, { borderRadius: 20, justifyContent: 'center' }]}
                 >
-                  <MaterialIcons name="home" size={18} color="#ffffff" />
-                  <Text style={styles.homeButtonText}>Go to Home</Text>
+                  <MaterialIcons name="home" size={18} color={theme.colors.onPrimary} />
+                  <Text style={styles.homeButtonText}>{'Go to Home'}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -729,12 +740,12 @@ export default function StudySession() {
       {penaltyModal && penaltyModal.show && (
         <Modal visible transparent animationType="fade">
           <View style={styles.modalOverlay}>
-            <View style={[styles.modalContainer, { alignItems: 'center' }]}> 
-              <View style={[styles.warningIcon, { borderWidth: 2, borderColor: '#FFB300', backgroundColor: '#FFF8E1' }]}> 
-                <MaterialIcons name="access-time" size={40} color="#FFB300" />
+            <View style={[styles.modalContainer, { alignItems: 'center', backgroundColor: theme.colors.card }]}> 
+              <View style={[styles.warningIcon, { borderWidth: 2, borderColor: theme.colors.warning, backgroundColor: theme.colors.warning + '10' }]}> 
+                <MaterialIcons name="access-time" size={40} color={theme.colors.warning} />
               </View>
-              <Text style={[styles.modalTitle, { color: '#FFB300', fontWeight: 'bold' }]}>Rời app quá lâu</Text>
-              <Text style={[styles.modalText, { color: '#333', textAlign: 'center', marginBottom: 8 }]}>Bạn đã rời app quá lâu: {Math.floor(penaltyModal.duration / 60)} phút {penaltyModal.duration % 60} giây</Text>
+              <Text style={[styles.modalTitle, { color: theme.colors.warning, fontWeight: 'bold' }]}>Rời app quá lâu</Text>
+              <Text style={[styles.modalText, { color: theme.colors.text, textAlign: 'center', marginBottom: 8 }]}>Bạn đã rời app quá lâu: {Math.floor(penaltyModal.duration / 60)} phút {penaltyModal.duration % 60} giây</Text>
             </View>
           </View>
         </Modal>
@@ -743,10 +754,10 @@ export default function StudySession() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: theme.colors.background,
   },
   scrollContent: {
     paddingTop: 60,
@@ -760,13 +771,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#4A90E2', // Thay từ '#1e3c72'
+    color: theme.colors.primary,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
   },
   timerContainer: {
@@ -777,11 +788,11 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.card,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -791,20 +802,20 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#4A90E2',
+    borderColor: theme.colors.primary,
   },
   timerText: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: '#4A90E2', 
+    color: theme.colors.primary,
   },
   timerLabel: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   progressContainer: {
@@ -814,17 +825,17 @@ const styles = StyleSheet.create({
   progressBar: {
     width: width - 80,
     height: 8,
-    backgroundColor: '#e9ecef',
+    backgroundColor: theme.colors.surfaceVariant,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#4A90E2', 
+    backgroundColor: theme.colors.primary,
     borderRadius: 4,
   },
   progressText: {
-    color: '#4A90E2', 
+    color: theme.colors.primary,
     fontSize: 14,
     marginTop: 8,
     fontWeight: '600',
@@ -833,20 +844,20 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   statsCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.card,
     borderRadius: 16,
     padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: theme.colors.outline,
   },
   statItem: {
     alignItems: 'center',
@@ -854,30 +865,31 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#4A90E2', 
+    color: theme.colors.primary,
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.colors.outline,
   },
   logsCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.card,
     borderRadius: 16,
     padding: 20,
-    maxHeight: 280,
-    shadowColor: '#000',
+    minHeight: 180,
+    position: 'relative',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: theme.colors.outline,
   },
   logsHeader: {
     flexDirection: 'row',
@@ -887,7 +899,7 @@ const styles = StyleSheet.create({
   logsTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4A90E2',
+    color: theme.colors.primary,
     marginLeft: 8,
   },
   logsScroll: {
@@ -899,13 +911,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: theme.colors.outline,
   },
   logIndex: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#e3f2fd',
+    backgroundColor: theme.colors.primary + '10',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -913,36 +925,40 @@ const styles = StyleSheet.create({
   logIndexText: {
     fontSize: 12,
     fontWeight: 'bold',
-    color: '#4A90E2',
+    color: theme.colors.primary,
   },
   logContent: {
     flex: 1,
   },
   logTime: {
     fontSize: 14,
-    color: '#333',
+    color: theme.colors.text,
     fontWeight: '500',
   },
   logDuration: {
     fontSize: 12,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 2,
   },
   emptyLogs: {
     flex: 1,
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    backgroundColor: 'transparent',
+    marginTop: 12,
+    marginBottom: 12,
   },
   emptyLogsText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4A90E2',
+    color: theme.colors.primary,
     marginTop: 12,
   },
   emptyLogsSubtext: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -953,7 +969,7 @@ const styles = StyleSheet.create({
   endButton: {
     borderRadius: 25,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -966,7 +982,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   endButtonText: {
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -975,19 +991,19 @@ const styles = StyleSheet.create({
   // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: theme.colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: theme.colors.card,
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
     marginHorizontal: 20,
     maxWidth: 340,
     width: '100%',
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -997,7 +1013,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#e8f5e8',
+    backgroundColor: theme.colors.success + '10',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -1005,26 +1021,26 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#4A90E2',
+    color: theme.colors.primary,
     marginBottom: 8,
     textAlign: 'center',
   },
   modalText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 22,
   },
   modalButton: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: theme.colors.primary,
     borderRadius: 25,
     paddingHorizontal: 24,
     paddingVertical: 12,
     minWidth: 100,
   },
   modalButtonText: {
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -1032,14 +1048,14 @@ const styles = StyleSheet.create({
   
   // Alert modal styles
   alertModal: {
-    borderColor: '#ff9800',
+    borderColor: theme.colors.warning,
     borderWidth: 2,
   },
   alertIcon: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#fff3e0',
+    backgroundColor: theme.colors.warning + '10',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -1047,13 +1063,13 @@ const styles = StyleSheet.create({
   alertTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#ff9800',
+    color: theme.colors.warning,
     marginBottom: 8,
     textAlign: 'center',
   },
   alertText: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 22,
@@ -1064,7 +1080,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#fff3e0',
+    backgroundColor: theme.colors.error + '10',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -1076,17 +1092,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   cancelButton: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: theme.colors.surfaceVariant,
     flex: 1,
   },
   cancelButtonText: {
-    color: '#666',
+    color: theme.colors.text,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
   },
   confirmButton: {
-    backgroundColor: '#ff6b6b',
+    backgroundColor: theme.colors.error,
     flex: 1,
   },
   
@@ -1099,7 +1115,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#e8f5e8',
+    backgroundColor: theme.colors.success + '10',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -1113,40 +1129,40 @@ const styles = StyleSheet.create({
   },
   statBox: {
     width: '48%',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.background,
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#e9ecef',
+    borderColor: theme.colors.outline,
   },
   statBoxNumber: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: '#4A90E2',
+    color: theme.colors.primary,
   },
   statBoxLabel: {
     fontSize: 10,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
   summaryStats: {
     width: '100%',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
   },
   summaryText: {
     fontSize: 12,
-    color: '#333',
+    color: theme.colors.text,
     marginBottom: 4,
   },
   finalLogsContainer: {
     width: '100%',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.background,
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
@@ -1155,7 +1171,7 @@ const styles = StyleSheet.create({
   finalLogsTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#4A90E2',
+    color: theme.colors.primary,
     marginBottom: 8,
   },
   finalLogsScroll: {
@@ -1163,13 +1179,13 @@ const styles = StyleSheet.create({
   },
   finalLogItem: {
     fontSize: 10,
-    color: '#666',
+    color: theme.colors.textSecondary,
     marginBottom: 2,
   },
   homeButton: {
     borderRadius: 25,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -1182,7 +1198,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   homeButtonText: {
-    color: '#ffffff',
+    color: theme.colors.onPrimary,
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,

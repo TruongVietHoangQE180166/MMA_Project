@@ -20,12 +20,16 @@ import { navigate } from '../../utils/navigation';
 import { useSessionStore } from "../../store/sessionStore";
 import { usePaymentStore } from "../../store/paymentStore";
 import { useFocusEffect } from '@react-navigation/native';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function UserHome() {
   const insets = useSafeAreaInsets();
+  const { theme, isDark } = useTheme();
   
   const { stasiscHoursRule, getStasiscHoursRule, weeklySession, getWeeklySession } = useSessionStore();
   const { point, getPoint } = usePaymentStore();
+  
+  const styles = createStyles(theme);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -204,9 +208,9 @@ export default function UserHome() {
               yAxisSuffix="h"
               yAxisInterval={1}
               chartConfig={{
-                backgroundColor: "#FFFFFF",
-                backgroundGradientFrom: "#FFFFFF",
-                backgroundGradientTo: "#FFFFFF",
+                backgroundColor: theme.colors.card,
+                backgroundGradientFrom: theme.colors.card,
+                backgroundGradientTo: theme.colors.card,
                 decimalPlaces: 1,
                 barPercentage: 0.6,
                 color: (opacity = 1) => `rgba(74, 144, 226, ${opacity})`,
@@ -241,10 +245,10 @@ export default function UserHome() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFBFC",
+    backgroundColor: theme.colors.background,
   },
   scrollView: {
     flex: 1,
@@ -267,7 +271,7 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 35,
     borderWidth: 3,
-    borderColor: "#4A90E2",
+    borderColor: theme.colors.primary,
   },
   titleContainer: {
     alignItems: "center",
@@ -275,7 +279,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#1A2332",
+    color: theme.colors.text,
     marginBottom: 8,
     letterSpacing: 0.5,
     textAlign: "center",
@@ -290,7 +294,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 15,
-    color: "#6B7688",
+    color: theme.colors.textSecondary,
     fontWeight: "500",
   },
   statsContainer: {
@@ -298,12 +302,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-around",
     alignItems: "center",
     width: "100%",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.card,
     paddingVertical: 24,
     paddingHorizontal: 16,
     borderRadius: 16,
     marginBottom: 40,
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -317,7 +321,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#F8FAFE",
+    backgroundColor: theme.colors.surfaceVariant,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
@@ -325,12 +329,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1A2332",
+    color: theme.colors.text,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: "#6B7688",
+    color: theme.colors.textSecondary,
     fontWeight: "500",
     textAlign: "center",
   },
@@ -342,11 +346,11 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
-    shadowColor: "#4A90E2",
+    shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
@@ -354,19 +358,19 @@ const styles = StyleSheet.create({
   },
   startButtonLabel: {
     fontSize: 15,
-    color: "#1A2332",
+    color: theme.colors.text,
     fontWeight: "600",
     letterSpacing: 0.3,
     marginTop: 2,
   },
   chartContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.card,
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 16,
     width: "100%",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -389,18 +393,18 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1A2332",
+    color: theme.colors.text,
     letterSpacing: 0.3,
   },
   chartSubtitle: {
     fontSize: 13,
-    color: "#6B7688",
+    color: theme.colors.textSecondary,
     fontWeight: "500",
   },
   chartWrapper: {
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.card,
     paddingHorizontal: 8,
   },
 });

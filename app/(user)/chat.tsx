@@ -15,6 +15,7 @@ import {
 } from 'react-native-paper';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Message {
   id: string;
@@ -25,25 +26,15 @@ interface Message {
 
 const GEMINI_API_KEY = 'AIzaSyA4CcjsXJ9tSKkKLa19T9XXkNptmsXhZPk';
 
-// Màu xanh chủ đạo
-const theme = {
-  colors: {
-    primary: '#4A90E2',
-    background: '#F8FAFE',
-    onPrimary: '#fff',
-    onSurface: '#333',
-    outline: '#e0e0e0',
-    surfaceVariant: '#e3f2fd',
-    onSurfaceVariant: '#222',
-  }
-};
-
 export default function ChatScreen() {
+  const { theme, isDark } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const insets = useSafeAreaInsets();
+  
+  const styles = createStyles(theme);
 
   // Tính toán tab bar height (88px) + padding
   const TAB_BAR_HEIGHT = 88;
@@ -245,13 +236,13 @@ export default function ChatScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8F9FF",
+    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     paddingTop: 50,
     paddingBottom: 25,
     borderBottomLeftRadius: 25,
@@ -262,12 +253,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#FFF",
+    color: theme.colors.onPrimary,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.8)",
+    color: theme.colors.onPrimary + '80',
   },
   scrollView: {
     flex: 1,
@@ -291,35 +282,35 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingVertical: 12,
     paddingHorizontal: 18,
-    shadowColor: "#000",
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
   userBubble: {
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
   },
   botBubble: {
-    backgroundColor: "#F8F9FF",
+    backgroundColor: theme.colors.surface,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: theme.colors.outline,
   },
   messageText: {
     fontSize: 16,
-    color: "#FFF",
+    color: theme.colors.onPrimary,
   },
   botText: {
-    color: "#2D3748",
+    color: theme.colors.onSurface,
   },
   timestamp: {
     fontSize: 12,
     marginTop: 8,
     textAlign: "right",
-    color: "#fff8",
+    color: theme.colors.onPrimary + '80',
   },
   botTimestamp: {
-    color: "#2D374888",
+    color: theme.colors.onSurface + '80',
   },
   loadingContainer: {
     flexDirection: "row",
@@ -331,7 +322,7 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 14,
     fontStyle: "italic",
-    color: "#2D3748",
+    color: theme.colors.onSurfaceVariant,
   },
   inputContainer: {
     flexDirection: "row",
@@ -339,16 +330,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: "#E2E8F0",
-    backgroundColor: "#FFF",
+    borderTopColor: theme.colors.outline,
+    backgroundColor: theme.colors.background,
     // Xóa position absolute để không đè lên content
   },
   inputWrapper: {
     flex: 1,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    backgroundColor: "#F8F9FF",
+    borderColor: theme.colors.outline,
+    backgroundColor: theme.colors.surfaceVariant,
     marginRight: 12,
     height: 48,
     justifyContent: "center",
@@ -357,13 +348,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 16,
     backgroundColor: "transparent",
-    color: "#2D3748",
+    color: theme.colors.onSurface,
   },
   sendButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#4A90E2",
+    backgroundColor: theme.colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
