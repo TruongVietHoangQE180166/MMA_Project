@@ -2,15 +2,15 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    FlatList,
-    Image,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View
+  FlatList,
+  Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 // --- Time Picker Constants ---
@@ -47,7 +47,6 @@ export default function CreateSession() {
         });
       }
       if (minutesRef.current) {
-        // Tương tự cho phút
         const initialScrollOffsetMinutes =
           ITEM_HEIGHT *
           (middleMinuteIndex + minutes - Math.floor(PICKER_VISIBLE_ITEMS / 2));
