@@ -61,6 +61,12 @@ export default function CreateSession() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleStartSession = async () => {
+    // Kiểm tra nếu đã có session active thì không cho tạo mới
+    const existingSession = await AsyncStorage.getItem("CURRENT_STUDY_SESSION");
+    if (existingSession) {
+      alert("Bạn đang có phiên học chưa kết thúc. Hãy hoàn thành hoặc kết thúc phiên đó trước khi tạo phiên mới.");
+      return;
+    }
     const totalMinutes = hours * 60 + minutes;
     if (totalMinutes === 0) {
       console.warn("Study session must be at least 1 minute.");

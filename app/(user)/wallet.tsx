@@ -25,7 +25,6 @@ const { width } = Dimensions.get("window");
 const FinanceScreen = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
-  const [showAll, setShowAll] = useState(false);
   const [showAmountModal, setShowAmountModal] = useState(false);
   const [amount, setAmount] = useState(0);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -51,19 +50,10 @@ const FinanceScreen = () => {
     React.useCallback(() => {
       getPoint();
       getPaymentHistory({ page: 1, size: pageSize });
+      setCurrentPage(1);
       reset();
     }, [])
   );
-
-  useEffect(() => {
-    if (showAll && paymentHistory.length < totalElement) {
-      const nextPage = Math.floor(paymentHistory.length / pageSize) + 1;
-      if (nextPage > currentPage) {
-        setCurrentPage(nextPage);
-        getPaymentHistory({ page: nextPage, size: pageSize });
-      }
-    }
-  }, [showAll, paymentHistory.length, totalElement]);
 
   useEffect(() => {
     if (
@@ -84,7 +74,7 @@ const FinanceScreen = () => {
     ) {
       setShowQRModal(false);
       getPoint();
-      getPaymentHistory({ page: 1, size: pageSize });
+      getPaymentHistory({ page: currentPage, size: pageSize });
       Alert.alert("Success", "Top-up completed!");
       reset();
     }
@@ -172,9 +162,8 @@ const FinanceScreen = () => {
     </View>
   );
 
-  const displayedTransactions = showAll
-    ? paymentHistory
-    : paymentHistory.slice(0, 4);
+  // Phân trang: chỉ hiển thị các giao dịch của trang hiện tại
+  const displayedTransactions = paymentHistory;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -228,21 +217,38 @@ const FinanceScreen = () => {
         <View style={styles.historySection}>
           <View style={styles.historySectionHeader}>
             <Text style={styles.sectionTitle}>Transaction history</Text>
-            {paymentHistory.length > 4 && (
+            {/* Pagination controls */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <TouchableOpacity
-                onPress={() => setShowAll(!showAll)}
-                style={styles.viewAllButton}
+                onPress={() => {
+                  if (currentPage > 1) {
+                    const prevPage = currentPage - 1;
+                    setCurrentPage(prevPage);
+                    getPaymentHistory({ page: prevPage, size: pageSize });
+                  }
+                }}
+                style={{ opacity: currentPage === 1 ? 0.5 : 1, marginRight: 12 }}
+                disabled={currentPage === 1}
               >
-                <Text style={styles.viewAllText}>
-                  {showAll ? "Collapse" : "View all"}
-                </Text>
-                <Feather
-                  name={showAll ? "chevron-up" : "chevron-down"}
-                  size={16}
-                  color="#6366F1"
-                />
+                <Feather name="chevron-left" size={20} color="#6366F1" />
               </TouchableOpacity>
-            )}
+              <Text style={{ fontSize: 14, color: '#4A90E2', fontWeight: '600' }}>
+                Page {currentPage} / {Math.ceil(totalElement / pageSize) || 1}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (currentPage < Math.ceil(totalElement / pageSize)) {
+                    const nextPage = currentPage + 1;
+                    setCurrentPage(nextPage);
+                    getPaymentHistory({ page: nextPage, size: pageSize });
+                  }
+                }}
+                style={{ opacity: currentPage === Math.ceil(totalElement / pageSize) ? 0.5 : 1, marginLeft: 12 }}
+                disabled={currentPage === Math.ceil(totalElement / pageSize)}
+              >
+                <Feather name="chevron-right" size={20} color="#6366F1" />
+              </TouchableOpacity>
+            </View>
           </View>
           <View style={styles.transactionList}>
             <FlatList

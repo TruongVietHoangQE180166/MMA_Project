@@ -20,8 +20,9 @@ export const COLORS = {
 };
 
 export const FONTS = {
-  regular: 'System',
-  bold: 'System',
+  regular: 'SpaceMono-Regular',
+  bold: 'SpaceMono-Regular',
+  juaRegular: 'SpaceMono-Regular',
 };
 
 export const SIZES = {

@@ -17,9 +17,8 @@ function formatHourMinute(totalMinutes: number) {
 }
 
 const StatisticalTab = () => {
-  const [showAllSessions, setShowAllSessions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize] = useState(10);
 
   const {
     stasiscHoursRule,
@@ -38,20 +37,11 @@ const StatisticalTab = () => {
       getStasiscHoursRule();
       getSubjectCount();
       getSessionUser({ page: 1, size: pageSize });
+      setCurrentPage(1);
       // Đặt reset xuống cuối cùng để không xóa mất dữ liệu vừa lấy
       // reset();
     }, [])
   );
-
-  React.useEffect(() => {
-    if (showAllSessions && sessionUser && sessionUser.content.length < sessionUser.totalElement) {
-      const nextPage = Math.floor(sessionUser.content.length / pageSize) + 1;
-      if (nextPage > currentPage) {
-        setCurrentPage(nextPage);
-        getSessionUser({ page: nextPage, size: pageSize });
-      }
-    }
-  }, [showAllSessions, sessionUser?.content.length, sessionUser?.totalElement]);
 
   const totalHours = stasiscHoursRule?.totalHours || 0;
   const totalSessions = stasiscHoursRule?.totalSessions || 0;
@@ -69,8 +59,9 @@ const StatisticalTab = () => {
   });
 
   const allSessions = sessionUser?.content || [];
-  const displayedSessions = showAllSessions ? allSessions : allSessions.slice(0, 4);
+  const displayedSessions = allSessions;
   const totalErrors = allSessions.reduce((sum, session) => sum + (session.penaltyPoints || 0), 0);
+  const totalElement = sessionUser?.totalElement || 0;
 
   const PieChart = () => {
     const radius = 80;
@@ -215,12 +206,12 @@ const StatisticalTab = () => {
             </View>
           </View>
           <View style={styles.sessionStats}>
-            <View style={styles.statItem}>
+              <View style={styles.statItem}>
               <Text style={styles.statLabel}>Error-Points</Text>
               <Text style={[styles.statValue, { color: item.penaltyPoints > 0 ? '#EF4444' : '#2C3E50' }]}>
-                {item.penaltyPoints}
-              </Text>
-            </View>
+                  {item.penaltyPoints}
+                </Text>
+              </View>
           </View>
         </View>
       </View>
@@ -285,15 +276,38 @@ const StatisticalTab = () => {
         <View style={styles.sessionsSection}>
           <View style={styles.sessionsSectionHeader}>
             <Text style={styles.sectionTitle}>Recent sessions</Text>
-            {allSessions.length > 4 && (
-              <TouchableOpacity onPress={() => setShowAllSessions(!showAllSessions)}>
-                <View style={styles.viewAllButton}>
-                  <Text style={styles.viewAllText}>
-                    {showAllSessions ? 'Collapse' : 'View all'}
-                  </Text>
-                </View>
+            {/* Pagination controls */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (currentPage > 1) {
+                    const prevPage = currentPage - 1;
+                    setCurrentPage(prevPage);
+                    getSessionUser({ page: prevPage, size: pageSize });
+                  }
+                }}
+                style={{ opacity: currentPage === 1 ? 0.5 : 1, marginRight: 12 }}
+                disabled={currentPage === 1}
+              >
+                <Feather name="chevron-left" size={20} color="#6366F1" />
               </TouchableOpacity>
-            )}
+              <Text style={{ fontSize: 14, color: '#4A90E2', fontWeight: '600' }}>
+                Page {currentPage} / {Math.ceil(totalElement / pageSize) || 1}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (currentPage < Math.ceil(totalElement / pageSize)) {
+                    const nextPage = currentPage + 1;
+                    setCurrentPage(nextPage);
+                    getSessionUser({ page: nextPage, size: pageSize });
+                  }
+                }}
+                style={{ opacity: currentPage === Math.ceil(totalElement / pageSize) ? 0.5 : 1, marginLeft: 12 }}
+                disabled={currentPage === Math.ceil(totalElement / pageSize)}
+              >
+                <Feather name="chevron-right" size={20} color="#6366F1" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.sessionsList}>

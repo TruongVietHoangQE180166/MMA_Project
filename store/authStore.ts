@@ -2,6 +2,19 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { authApi, forgotPassword, resetPassword } from "../services/authApi";
 import { AuthState, UserProfile } from "../types";
+import { jwtDecode } from 'jwt-decode';
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const decoded: any = jwtDecode(token);
+    if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+      return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
 
 const initializeAuthState = async (): Promise<Partial<AuthState>> => {
   try {
@@ -10,6 +23,18 @@ const initializeAuthState = async (): Promise<Partial<AuthState>> => {
     const userProfileString = await AsyncStorage.getItem("userProfile"); 
     
     if (token && userString) {
+      // Kiểm tra token hết hạn
+      if (isTokenExpired(token)) {
+        await AsyncStorage.removeItem("token");
+        await AsyncStorage.removeItem("user");
+        await AsyncStorage.removeItem("userProfile");
+        return {
+          user: null,
+          userProfile: null,
+          token: null,
+          isAuthenticated: false,
+        };
+      }
       const user = JSON.parse(userString);
       const userProfile = userProfileString ? JSON.parse(userProfileString) : null;
       return {
@@ -166,7 +191,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const imageUrl = await authApi.uploadImage(token, imageFile);
           finalProfileData.avatar = imageUrl;
         } catch (uploadError) {
-          throw new Error(`Image upload failed: ${uploadError.message}`);
+          const errMsg = uploadError instanceof Error ? uploadError.message : String(uploadError);
+          throw new Error(`Image upload failed: ${errMsg}`);
         }
       }
       
@@ -184,4 +210,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 initializeAuthState().then((initialState) => {
   useAuthStore.setState(initialState);
+}).catch((error) => {
+  console.error('Failed to initialize auth state:', error);
+  useAuthStore.setState({
+    user: null,
+    userProfile: null,
+    token: null,
+    isAuthenticated: false,
+  });
 });

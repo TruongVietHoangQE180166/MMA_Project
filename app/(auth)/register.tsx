@@ -99,13 +99,6 @@ export default function Register() {
     }
   };
 
-  const handleGoogleSignup = () => {
-    showToast('info', 'Google sign-up functionality has not been implemented yet');
-  };
-
-  const handleAppleSignup = () => {
-    showToast('info', 'Apple sign-up functionality has not been implemented yet');
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -210,32 +203,6 @@ export default function Register() {
           <Text style={styles.loginText}>Already have an account? </Text>
           <TouchableOpacity onPress={() => navigate.toLogin()}>
             <Text style={styles.loginLink}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Or Divider */}
-        <Text style={styles.orText}>Or</Text>
-
-        {/* Social Login Buttons */}
-        <View style={styles.socialButtonsContainer}>
-          <TouchableOpacity
-            style={styles.socialButton}
-            onPress={handleGoogleSignup}
-          >
-            <Image
-              source={require("../../assets/images/google.png")}
-              style={styles.socialIcon}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.socialButton}
-            onPress={handleAppleSignup}
-          >
-            <Image
-              source={require("../../assets/images/apple.png")}
-              style={styles.socialIcon}
-            />
           </TouchableOpacity>
         </View>
       </View>
@@ -396,38 +363,6 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 
-  // Divider
-  orText: {
-    fontSize: 18,
-    color: "#333",
-    textAlign: "center",
-    marginBottom: 20,
-    fontWeight: "bold",
-  },
-
-  // Social Login Buttons
-  socialButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 30,
-    gap: 25,
-  },
-  socialButton: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: 65,
-    height: 65,
-    borderRadius: 32.5,
-    borderWidth: 2,
-    backgroundColor: "transparent",
-    borderColor: COLORS.light,
-  },
-  socialIcon: {
-    width: 40,
-    height: 40,
-    resizeMode: "contain",
-  },
 
   // Bottom Decoration
   bottomDecoration: {

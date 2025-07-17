@@ -1,6 +1,6 @@
 import { PaymentRequest, PaymentResponse, PaymentConfirmResponse, PointResponse, PaymentHistoryResponse } from "../types/payment";
 
-const API_BASE_URL = "http://10.0.2.2:8080";
+const API_BASE_URL = "https://concentrate-cxcthbapc3bdadh3.southeastasia-01.azurewebsites.net";
 
 export const paymentApi = {
   createPayment: async (token: string, body: PaymentRequest): Promise<PaymentResponse> => {

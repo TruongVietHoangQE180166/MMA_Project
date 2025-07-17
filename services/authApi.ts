@@ -1,6 +1,19 @@
 import { User, UserProfile } from "../types";
 
-const API_BASE_URL = "http://10.0.2.2:8080";
+const API_BASE_URL = "https://concentrate-cxcthbapc3bdadh3.southeastasia-01.azurewebsites.net";
+
+// Add network error handling
+const handleNetworkError = (error: any): never => {
+  if (error.name === 'AbortError') {
+    throw new Error('Request timed out. Please check your internet connection.');
+  } else if (error instanceof TypeError) {
+    throw new Error('Network error. Please check your internet connection.');
+  } else if (error instanceof Error) {
+    throw error;
+  } else {
+    throw new Error('An unknown error occurred.');
+  }
+};
 
 export const authApi = {
   verifyOTP: async (email: string, otp: string): Promise<void> => {

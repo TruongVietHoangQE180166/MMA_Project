@@ -1,6 +1,6 @@
 import { WeeklySessionResponse, SessionUserResponse, SubjectCountResponse, StasiscHoursRuleResponse } from "../types/session";
 
-const API_BASE_URL = "http://10.0.2.2:8080";
+const API_BASE_URL = "https://concentrate-cxcthbapc3bdadh3.southeastasia-01.azurewebsites.net";
 
 export const sessionApi = {
 

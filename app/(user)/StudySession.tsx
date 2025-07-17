@@ -26,7 +26,8 @@ const MILESTONES = [0.2, 0.4, 0.6, 0.8];
 export default function StudySession() {
   useKeepAwake();
   const router = useRouter();
-  const { duration = "60", subject = "", sessionKey = "0", remainingSeconds, sessionId: paramSessionId } = useLocalSearchParams();
+  // Bỏ lấy sessionId từ params, chỉ lấy sessionKey nếu cần
+  const { duration = "60", subject = "", sessionKey = "0", remainingSeconds } = useLocalSearchParams();
   const totalStudyTime = Number(duration) * 60; // giây
 
   const { initialRemaining, initialStartTimestamp } = useMemo(() => {
@@ -63,24 +64,33 @@ export default function StudySession() {
   const totalForegroundTime = useRef<number>(0);
   const [hasNotifPermission, setHasNotifPermission] = useState(false);
   const { applyPenalty, endEarlySession } = useSessionStore();
-  const [sessionId, setSessionId] = useState<string | null>(paramSessionId ? String(paramSessionId) : null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnding, setIsEnding] = useState(false);
+  const justRestoredFromKill = useRef(false);
 
-  // Backup: Nếu không có sessionId từ params, thử lấy từ AsyncStorage
+  // Khi mount, luôn lấy sessionId từ AsyncStorage
   useEffect(() => {
-    if (!sessionId) {
-      (async () => {
-        const sessionStr = await AsyncStorage.getItem("CURRENT_STUDY_SESSION");
-        if (sessionStr) {
-          try {
-            const sessionObj = JSON.parse(sessionStr);
-            if (sessionObj.sessionId) setSessionId(sessionObj.sessionId);
-          } catch {}
+    (async () => {
+      const sessionStr = await AsyncStorage.getItem("CURRENT_STUDY_SESSION");
+      if (sessionStr) {
+        try {
+          const sessionObj = JSON.parse(sessionStr);
+          if (sessionObj.sessionId) setSessionId(sessionObj.sessionId);
+          else {
+            alert("Không tìm thấy sessionId. Về trang chủ.");
+            router.replace("/(user)/home");
+          }
+        } catch {
+          alert("Lỗi đọc dữ liệu phiên học. Về trang chủ.");
+          router.replace("/(user)/home");
         }
-      })();
-    }
-  }, [sessionId]);
+      } else {
+        alert("Không có phiên học active. Về trang chủ.");
+        router.replace("/(user)/home");
+      }
+    })();
+  }, []);
   
   // Tạo hàm startTimer để có thể gọi lại khi cần
   const startTimer = useCallback(() => {
@@ -175,41 +185,44 @@ export default function StudySession() {
     };
   }, [sessionKey, initialRemaining, initialStartTimestamp, hasLoadedStats, startTimer]);
 
-  // Khi mount, kiểm tra lastActiveTime để cộng vào thống kê nếu app từng bị kill
+  // Đọc LAST_ACTIVE_TIME chỉ khi đã có sessionId
   useEffect(() => {
+    if (!sessionId) return;
     (async () => {
-      const lastActiveStr = await AsyncStorage.getItem('LAST_ACTIVE_TIME');
+      const lastActiveStr = await AsyncStorage.getItem("LAST_ACTIVE_TIME");
       if (lastActiveStr) {
         const lastActive = Number(lastActiveStr);
         const now = Date.now();
         if (now - lastActive > 0 && now - lastActive < 1000 * 60 * 60 * 24) {
           const bgTime = Math.floor((now - lastActive) / 1000);
-          setStats((s) => ({
-            ...s,
-            totalBackgroundTime: s.totalBackgroundTime + bgTime,
-            backgroundExitCount: s.backgroundExitCount + 1,
-            violationCount: s.violationCount + (bgTime > 60 ? 1 : 0),
-            backgroundLogs: [
-              ...s.backgroundLogs,
-              { time: new Date().toLocaleTimeString(), duration: bgTime },
-            ],
-          }));
-          // Gửi penalty lên server nếu đủ điều kiện
-          const penaltyMinutes = Math.floor(bgTime / 60);
-          if (sessionId && penaltyMinutes > 0) {
-            const penaltyParams = { sessionId, duration: penaltyMinutes };
-            console.log('Calling applyPenalty after app relaunch with:', penaltyParams);
-            applyPenalty(penaltyParams)
-              .then(res => {
-                console.log('applyPenalty response (relaunch):', res);
-              })
-              .catch((err) => { console.log('applyPenalty error (relaunch):', err); });
+          if (bgTime > 0) {
+            setStats((s) => ({
+              ...s,
+              totalBackgroundTime: s.totalBackgroundTime + bgTime,
+              backgroundExitCount: s.backgroundExitCount + 1,
+              violationCount: s.violationCount + (bgTime > 60 ? 1 : 0),
+              backgroundLogs: [
+                ...s.backgroundLogs,
+                { time: new Date().toLocaleTimeString(), duration: bgTime },
+              ],
+            }));
+            const penaltyMinutes = Math.floor(bgTime / 60);
+            if (penaltyMinutes > 0) {
+              const penaltyParams = { sessionId, duration: penaltyMinutes };
+              console.log('Calling applyPenalty after app relaunch with:', penaltyParams);
+              applyPenalty(penaltyParams)
+                .then(res => {
+                  console.log('applyPenalty response (relaunch):', res);
+                })
+                .catch((err) => { console.log('applyPenalty error (relaunch):', err); });
+            }
           }
+          justRestoredFromKill.current = true;
         }
-        await AsyncStorage.removeItem('LAST_ACTIVE_TIME');
+        await AsyncStorage.removeItem("LAST_ACTIVE_TIME");
       }
     })();
-  }, [sessionKey, sessionId, applyPenalty]);
+  }, [sessionId, sessionKey, applyPenalty]);
 
   // Mỗi 1 giây, lưu lastActiveTime nếu app ở foreground và chưa kết thúc
   useEffect(() => {
@@ -286,6 +299,11 @@ export default function StudySession() {
       }
       
       if (appState.match(/inactive|background/) && next === "active") {
+        if (justRestoredFromKill.current) {
+          justRestoredFromKill.current = false; // Bỏ qua lần đầu sau khi kill app
+          setAppState(next);
+          return;
+        }
         // Khởi động lại timer nếu app được khôi phục
         if (timer.current === null && !ended.current) {
           startTimer();
@@ -293,31 +311,29 @@ export default function StudySession() {
         
         if (bgStart.current) {
           const bgTime = Math.floor((now - bgStart.current) / 1000);
-          setStats((s) => ({
-            ...s,
-            totalBackgroundTime: s.totalBackgroundTime + bgTime,
-            backgroundExitCount: s.backgroundExitCount + 1,
-            violationCount: s.violationCount + (bgTime > 60 ? 1 : 0),
-            backgroundLogs: [
-              ...s.backgroundLogs,
-              { time: new Date().toLocaleTimeString(), duration: bgTime },
-            ],
-          }));
-          // Gọi applyPenalty nếu có sessionId và bgTime > 0
-          const penaltyMinutes = Math.floor(bgTime / 60);
-          if (!sessionId) {
-            alert('No sessionId for applyPenalty');
-          } else if (penaltyMinutes <= 0) {
-            alert('Penalty duration is 0 minutes, not sending applyPenalty');
-          } else {
-            const penaltyParams = { sessionId, duration: penaltyMinutes };
-            console.log('Calling applyPenalty with:', penaltyParams);
-            applyPenalty(penaltyParams)
-              .then(res => {
-                console.log('applyPenalty response:', res);
-                handleApiResponseLog(res, 'ApplyPenalty');
-              })
-              .catch((err) => { console.log('applyPenalty error:', err); });
+          if (bgTime > 0) {
+            setStats((s) => ({
+              ...s,
+              totalBackgroundTime: s.totalBackgroundTime + bgTime,
+              backgroundExitCount: s.backgroundExitCount + 1,
+              violationCount: s.violationCount + (bgTime > 60 ? 1 : 0),
+              backgroundLogs: [
+                ...s.backgroundLogs,
+                { time: new Date().toLocaleTimeString(), duration: bgTime },
+              ],
+            }));
+            // Gọi applyPenalty nếu có sessionId và bgTime > 1 phút
+            const penaltyMinutes = Math.floor(bgTime / 60);
+            if (sessionId && penaltyMinutes > 0) {
+              const penaltyParams = { sessionId, duration: penaltyMinutes };
+              console.log('Calling applyPenalty with:', penaltyParams);
+              applyPenalty(penaltyParams)
+                .then(res => {
+                  console.log('applyPenalty response:', res);
+                  handleApiResponseLog(res, 'ApplyPenalty');
+                })
+                .catch((err) => { console.log('applyPenalty error:', err); });
+            }
           }
           
           // Nếu hết giờ khi ở nền, show modal khi quay lại
