@@ -181,11 +181,7 @@ export default function UserLayout() {
     return <Redirect href="/" />;
   }
 
-  return (
-    <ThemeProvider>
-      <TabsWithTheme />
-    </ThemeProvider>
-  );
+  return <TabsWithTheme />;
 }
 
 // Enhanced TabBarButton component with proper typing and improved animations

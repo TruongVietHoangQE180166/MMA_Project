@@ -31,7 +31,7 @@ export default function StudySession() {
   const styles = createStyles(theme);
   // Bỏ lấy sessionId từ params, chỉ lấy sessionKey nếu cần
   const { duration = "60", subject = "", sessionKey = "0", remainingSeconds, sessionId: sessionIdFromParams, isNewSession, aiEnabled = "false" } = useLocalSearchParams();
-  const [hasAIEnabled] = useState(aiEnabled === "true");
+  const hasAIEnabled = useMemo(() => aiEnabled === "true", [aiEnabled]);
   console.log('PARAM aiEnabled:', aiEnabled);
   console.log('hasAIEnabled:', hasAIEnabled);
   const { initialRemaining, initialStartTimestamp } = useMemo(() => {
@@ -533,9 +533,10 @@ export default function StudySession() {
     captureInterval = setInterval(async () => {
       if (cameraRef.current && aiSocket && aiSocket.readyState === WebSocket.OPEN) {
         try {
-          const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.3, skipProcessing: true });
+          const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5, skipProcessing: true });
           if (photo.base64) {
             console.log('[AI SOCKET] Sending image to AI server (base64 length):', photo.base64.length);
+            console.log('[AI SOCKET] Base64 full:', photo.base64);
             aiSocket.send(photo.base64);
           }
         } catch (err) {

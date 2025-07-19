@@ -10,17 +10,24 @@ import {
   View,
   Animated,
 } from "react-native";
+// Fix: Use react-native-chart-kit instead of victory
 import { BarChart } from "react-native-chart-kit";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import Svg, { Polygon, Defs, LinearGradient, Stop } from "react-native-svg";
+import Svg, { Polygon } from "react-native-svg";
 import { navigate } from '../../utils/navigation';
 import { useSessionStore } from "../../store/sessionStore";
 import { usePaymentStore } from "../../store/paymentStore";
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
+
+// Add type definitions
+interface ChartDataPoint {
+  x: string;
+  y: number;
+}
 
 export default function UserHome() {
   const insets = useSafeAreaInsets();
@@ -46,7 +53,7 @@ export default function UserHome() {
   // Format totalHours thành 'Xh Yp'
   const totalHoursStr = totalHours > 0 ? `${Math.floor(totalHours/60)}h ${totalHours%60}m` : '0h 0m';
 
-  // Chart data từ weeklySession
+  // Chart data for react-native-chart-kit
   const chartLabels = (weeklySession && weeklySession.length === 7)
     ? weeklySession.map(item => {
         const d = new Date(item.date);
@@ -57,9 +64,24 @@ export default function UserHome() {
         date.setDate(date.getDate() - (6 - i));
         return `${date.getDate()}/${date.getMonth() + 1}`;
       });
-  const chartData = (weeklySession && weeklySession.length === 7)
+      
+  const chartDataValues = (weeklySession && weeklySession.length === 7)
     ? weeklySession.map(item => Number((item.totalDuration/60).toFixed(1)))
-    : [0,0,0,0,0,0,0];
+    : Array.from({ length: 7 }, () => 0);
+
+  const chartConfig = {
+    backgroundGradientFrom: theme.colors.card,
+    backgroundGradientTo: theme.colors.card,
+    color: (opacity = 1) => `rgba(46, 134, 193, 1)`, // Màu xanh đồng nhất
+    fillShadowGradient: "#2E86C1", // Màu xanh đậm cho toàn bộ cột
+    fillShadowGradientTo: "#2E86C1", // Màu kết thúc giống màu bắt đầu
+    fillShadowGradientOpacity: 1, // Không nhạt
+    labelColor: (opacity = 1) => theme.colors.textSecondary,
+    strokeWidth: 2,
+    barPercentage: 0.7,
+    useShadowColorFromDataset: false,
+    decimalPlaces: 1,
+  };
 
   // Animation for play icon scale
   const playScale = useRef(new Animated.Value(1)).current;
@@ -82,6 +104,8 @@ export default function UserHome() {
     animate();
     return () => playScale.stopAnimation();
   }, [playScale]);
+
+  const maxValue = Math.max(...chartDataValues, 1);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -198,45 +222,22 @@ export default function UserHome() {
                 labels: chartLabels,
                 datasets: [
                   {
-                    data: chartData.length > 0 ? chartData : [0, 0, 0, 0, 0, 0, 0],
+                    data: chartDataValues,
                   },
                 ],
               }}
               width={Dimensions.get("window").width - 64}
-              height={200}
+              height={220}
               yAxisLabel=""
               yAxisSuffix="h"
-              yAxisInterval={1}
-              chartConfig={{
-                backgroundColor: theme.colors.card,
-                backgroundGradientFrom: theme.colors.card,
-                backgroundGradientTo: theme.colors.card,
-                decimalPlaces: 1,
-                barPercentage: 0.6,
-                color: (opacity = 1) => `rgba(74, 144, 226, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(107, 118, 136, ${opacity})`,
-                style: {
-                  borderRadius: 12,
-                },
-                propsForBackgroundLines: {
-                  stroke: "#F0F2F5",
-                  strokeDasharray: "3,3",
-                  strokeWidth: 1,
-                },
-                propsForLabels: {
-                  fontSize: 12,
-                  fontWeight: "500",
-                },
-              }}
+              chartConfig={chartConfig}
               style={{
                 marginVertical: 8,
                 borderRadius: 12,
-                paddingRight: 0,
               }}
               showValuesOnTopOfBars={true}
+              withInnerLines={true}
               fromZero={true}
-              withHorizontalLabels={true}
-              withVerticalLabels={true}
             />
           </View>
         </View>
