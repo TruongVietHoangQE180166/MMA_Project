@@ -46,6 +46,7 @@ export default function StartApp() {
                       sessionKey: session.sessionKey,
                       remainingSeconds: remaining.toString(),
                       sessionId: session.sessionId, // truyền sessionId nếu có
+                      aiEnabled: (session.aiEnabled === true ? 'true' : 'false'), // truyền trạng thái AI camera
                     },
                   });
                 }, 3000);

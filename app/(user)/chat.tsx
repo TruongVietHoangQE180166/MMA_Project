@@ -35,9 +35,7 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   
   const styles = createStyles(theme);
-
-  // Tính toán tab bar height (88px) + padding
-  const TAB_BAR_HEIGHT = 88;
+  
   const BOTTOM_SAFE_AREA = insets.bottom;
 
   useEffect(() => {
@@ -332,7 +330,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: theme.colors.outline,
     backgroundColor: theme.colors.background,
-    // Xóa position absolute để không đè lên content
   },
   inputWrapper: {
     flex: 1,

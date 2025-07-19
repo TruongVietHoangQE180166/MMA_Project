@@ -9,6 +9,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useSessionStore } from "../../store/sessionStore";
 import { useTheme } from '../../contexts/ThemeContext';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import type { AppStateStatus } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,7 +30,10 @@ export default function StudySession() {
   const { theme, isDark } = useTheme();
   const styles = createStyles(theme);
   // Bỏ lấy sessionId từ params, chỉ lấy sessionKey nếu cần
-  const { duration = "60", subject = "", sessionKey = "0", remainingSeconds, sessionId: sessionIdFromParams, isNewSession } = useLocalSearchParams();
+  const { duration = "60", subject = "", sessionKey = "0", remainingSeconds, sessionId: sessionIdFromParams, isNewSession, aiEnabled = "false" } = useLocalSearchParams();
+  const [hasAIEnabled] = useState(aiEnabled === "true");
+  console.log('PARAM aiEnabled:', aiEnabled);
+  console.log('hasAIEnabled:', hasAIEnabled);
   const { initialRemaining, initialStartTimestamp } = useMemo(() => {
     const totalStudyTime = Number(duration) * 60;
     const remaining = remainingSeconds ? Number(remainingSeconds) : totalStudyTime;
@@ -57,7 +62,7 @@ export default function StudySession() {
   const [milestonesShown, setMilestonesShown] = useState<boolean[]>(MILESTONES.map(() => false));
   const [endModal, setEndModal] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
-  const [appState, setAppState] = useState(AppState.currentState);
+  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
   const [alertModal, setAlertModal] = useState<{ show: boolean; type: '3m' | '1m' | null }>({ show: false, type: null });
   const bgStart = useRef<number | null>(null);
   const timer = useRef<number | null>(null);
@@ -72,6 +77,16 @@ export default function StudySession() {
   const [isEnding, setIsEnding] = useState(false);
   const justRestoredFromKill = useRef(false);
   const [penaltyModal, setPenaltyModal] = useState<{ show: boolean; duration: number } | null>(null);
+
+  // AI Camera states (logic tối ưu)
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef<any>(null);
+  const [aiSocket, setAiSocket] = useState<WebSocket | null>(null);
+  const [aiAbsentStart, setAiAbsentStart] = useState<number | null>(null);
+  const [aiAbsentTime, setAiAbsentTime] = useState<number>(0);
+  const [aiPresenceWarningModal, setAiPresenceWarningModal] = useState(false);
+  const [aiWarningModal, setAiWarningModal] = useState<{ show: boolean; duration: number } | null>(null);
+  const [showCameraPreview, setShowCameraPreview] = useState(false);
 
   // Khi mount, luôn lấy sessionId từ params nếu có, nếu không thì lấy từ AsyncStorage
   useEffect(() => {
@@ -380,6 +395,175 @@ export default function StudySession() {
     return () => sub.remove();
   }, [appState, remaining, endModal, totalStudyTime, hasNotifPermission, sessionKey, startTimer, sessionId, applyPenalty]);
 
+  // Xin quyền camera khi vào màn hình
+  useEffect(() => {
+    if (!hasAIEnabled) return;
+    if (!permission || !permission.granted) {
+      requestPermission();
+    }
+  }, [hasAIEnabled, permission, requestPermission]);
+
+  // Theo dõi trạng thái app để cập nhật appState
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      setAppState(nextAppState);
+      if (nextAppState.match(/inactive|background/)) {
+        // App vào background, đóng socket AI nếu còn mở
+        if (aiSocket) {
+          aiSocket.close();
+          setAiSocket(null);
+          console.log('[AI SOCKET] Closed due to background');
+        }
+      } else if (nextAppState === 'active') {
+        console.log('[AI SOCKET] App returned to foreground, will reconnect if needed');
+      }
+    };
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    return () => sub.remove();
+  }, [aiSocket]);
+
+  // Reset state AI camera khi sessionKey thay đổi
+  useEffect(() => {
+    setAiSocket(null);
+    setAiAbsentStart(null);
+    setAiAbsentTime(0);
+    setAiPresenceWarningModal(false);
+    setAiWarningModal(null);
+    // Có thể reset thêm các state khác nếu cần
+  }, [sessionKey]);
+
+  // useEffect kết nối socket AI, thêm sessionKey vào dependency và log
+  useEffect(() => {
+    console.log('[AI SOCKET] useEffect connect socket, appState:', appState);
+    if (!hasAIEnabled || !permission || !permission.granted || appState !== 'active') return;
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket('ws://concentrate-cxcthbapc3bdadh3.southeastasia-01.azurewebsites.net/ws/image');
+      ws.onopen = () => {
+        console.log('[AI SOCKET] Connected');
+        setAiSocket(ws);
+      };
+      ws.onclose = (e) => {
+        console.log('[AI SOCKET] Closed', e);
+        setAiSocket(null);
+      };
+      ws.onerror = (err) => {
+        console.log('[AI SOCKET] Error', err);
+        setAiSocket(null);
+      };
+      ws.onmessage = (event) => {
+        console.log('[AI SOCKET] Message', event.data);
+      };
+    } catch (err) {
+      console.log('[AI SOCKET] Exception', err);
+      setAiSocket(null);
+    }
+    return () => {
+      if (ws) {
+        console.log('[AI SOCKET] Cleanup: closing');
+        ws.close();
+      }
+    };
+  }, [hasAIEnabled, permission, permission?.granted, appState, sessionKey]);
+
+  // Chụp ảnh định kỳ và gửi lên AI server, nhận kết quả, xử lý penalty tối ưu
+  useEffect(() => {
+    console.log('[AI CAMERA DEBUG] useEffect gửi ảnh chạy:', {
+      hasAIEnabled,
+      permission,
+      permissionGranted: permission?.granted,
+      aiSocket,
+      cameraRefCurrent: !!cameraRef.current,
+      appState,
+      sessionKey
+    });
+    if (!hasAIEnabled || !permission || !permission.granted || !aiSocket || !cameraRef.current || appState !== 'active') {
+      console.log('[AI CAMERA DEBUG] Không đủ điều kiện gửi ảnh:', {
+        hasAIEnabled,
+        permission,
+        permissionGranted: permission?.granted,
+        aiSocket,
+        cameraRefCurrent: !!cameraRef.current,
+        appState,
+        sessionKey
+      });
+      return;
+    }
+    let captureInterval: any = null;
+    let lastAbsentStart: number | null = null;
+    let lastAbsentTime: number = 0;
+
+    // Hàm gửi penalty khi quay lại hoặc end session
+    const sendPenaltyIfNeeded = async () => {
+      if (lastAbsentStart && lastAbsentTime >= 60) {
+        const penaltyMinutes = Math.floor(lastAbsentTime / 60);
+        setAiWarningModal({ show: true, duration: lastAbsentTime });
+        if (sessionId) {
+          const penaltyParams = { sessionId, duration: penaltyMinutes };
+          await applyPenalty(penaltyParams);
+        }
+      }
+    };
+
+    // Nhận kết quả từ AI server
+    aiSocket.onmessage = (event: any) => {
+      console.log('[AI SOCKET] Response from AI server:', event.data);
+      const message = event.data;
+      if (message.includes('Có người')) {
+        setAiPresenceWarningModal(false);
+        if (lastAbsentStart) {
+          lastAbsentTime = Math.floor((Date.now() - lastAbsentStart) / 1000);
+          sendPenaltyIfNeeded();
+          lastAbsentStart = null;
+          lastAbsentTime = 0;
+        }
+        setAiAbsentStart(null);
+        setAiAbsentTime(0);
+      } else if (message.includes('Không có người')) {
+        setAiPresenceWarningModal(true);
+        if (!lastAbsentStart) {
+          lastAbsentStart = Date.now();
+        }
+        setAiAbsentStart(lastAbsentStart);
+        setAiAbsentTime(Math.floor((Date.now() - lastAbsentStart) / 1000));
+      }
+    };
+
+    // Chụp ảnh định kỳ
+    captureInterval = setInterval(async () => {
+      if (cameraRef.current && aiSocket && aiSocket.readyState === WebSocket.OPEN) {
+        try {
+          const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.3, skipProcessing: true });
+          if (photo.base64) {
+            console.log('[AI SOCKET] Sending image to AI server (base64 length):', photo.base64.length);
+            aiSocket.send(photo.base64);
+          }
+        } catch (err) {
+          console.log('[AI SOCKET] Error taking photo:', err);
+        }
+      }
+      // Nếu đang vắng mặt, cập nhật thời gian vắng mặt
+      if (lastAbsentStart) {
+        lastAbsentTime = Math.floor((Date.now() - lastAbsentStart) / 1000);
+        setAiAbsentTime(lastAbsentTime);
+      }
+    }, 1000);
+
+    return () => {
+      if (captureInterval) clearInterval(captureInterval);
+      // Khi unmount hoặc end session, nếu đang vắng mặt thì gửi penalty
+      sendPenaltyIfNeeded();
+    };
+  }, [hasAIEnabled, permission, aiSocket, cameraRef, sessionId, applyPenalty, appState, sessionKey]);
+
+  // Tự động tắt penaltyModal sau 3s
+  useEffect(() => {
+    if (penaltyModal && penaltyModal.show) {
+      const timer = setTimeout(() => setPenaltyModal(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [penaltyModal]);
+
   function formatMinSec(seconds: number) {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -421,12 +605,18 @@ export default function StudySession() {
     
     bgStart.current = null;
     ended.current = true;
-    
+
+    // Đóng socket AI nếu còn mở
+    if (aiSocket) {
+      aiSocket.close();
+      setAiSocket(null);
+    }
+
     // Xóa session khỏi AsyncStorage
     await AsyncStorage.removeItem('CURRENT_STUDY_SESSION');
     await AsyncStorage.removeItem('LAST_ACTIVE_TIME');
     await AsyncStorage.removeItem('CURRENT_STUDY_SESSION_STATS_' + sessionKey);
-  }, [totalStudyTime, appState, sessionKey]);
+  }, [totalStudyTime, appState, sessionKey, aiSocket]);
 
   // Kết thúc sớm
   function handleEndEarly() {
@@ -482,8 +672,38 @@ export default function StudySession() {
     );
   }
 
+  // Đảm bảo sessionKey là string duy nhất cho key
+  const sessionKeyString = Array.isArray(sessionKey) ? sessionKey[0] : String(sessionKey);
+
   return (
     <View style={styles.container}>
+      {/* Camera Preview */}
+      {hasAIEnabled && permission && permission.granted && (
+        <View style={{ position: 'absolute', top: 80, right: 20, zIndex: 1000 }}>
+          <TouchableOpacity
+            style={{ backgroundColor: theme.colors.primary, borderRadius: 20, padding: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}
+            onPress={() => setShowCameraPreview?.((v: boolean) => !v)}
+          >
+            <MaterialIcons name={showCameraPreview ? 'visibility-off' : 'visibility'} size={20} color={theme.colors.onPrimary} />
+          </TouchableOpacity>
+          {showCameraPreview && (
+            <CameraView
+              key={sessionKeyString}
+              style={{ width: 120, height: 90, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.card, borderWidth: 2, borderColor: theme.colors.primary }}
+              facing="front"
+              ref={cameraRef}
+            />
+          )}
+          {!showCameraPreview && (
+            <CameraView
+              key={sessionKeyString}
+              style={{ opacity: 0, width: 1, height: 1, position: 'absolute', zIndex: -1 }}
+              facing="front"
+              ref={cameraRef}
+            />
+          )}
+        </View>
+      )}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
       <Text style={styles.title}>{subject}</Text>
@@ -746,6 +966,41 @@ export default function StudySession() {
               </View>
               <Text style={[styles.modalTitle, { color: theme.colors.warning, fontWeight: 'bold' }]}>Rời app quá lâu</Text>
               <Text style={[styles.modalText, { color: theme.colors.text, textAlign: 'center', marginBottom: 8 }]}>Bạn đã rời app quá lâu: {Math.floor(penaltyModal.duration / 60)} phút {penaltyModal.duration % 60} giây</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
+      {/* Modal cảnh báo luôn hiển thị khi không có người trước camera */}
+      {aiPresenceWarningModal && (
+        <Modal visible transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContainer, { alignItems: 'center', backgroundColor: theme.colors.card }]}> 
+              <View style={[styles.warningIcon, { borderWidth: 2, borderColor: theme.colors.warning, backgroundColor: theme.colors.warning + '10' }]}> 
+                <MaterialIcons name="visibility-off" size={40} color={theme.colors.warning} />
+              </View>
+              <Text style={[styles.modalTitle, { color: theme.colors.warning, fontWeight: 'bold' }]}>Không phát hiện bạn trước camera</Text>
+              <Text style={[styles.modalText, { color: theme.colors.text, textAlign: 'center', marginBottom: 16 }]}>Vui lòng quay lại trước camera để tiếp tục học tập và tránh bị phạt.</Text>
+              <TouchableOpacity 
+                style={[styles.modalButton, { backgroundColor: theme.colors.warning }]}
+                onPress={() => setAiPresenceWarningModal(false)}
+              >
+                <Text style={[styles.modalButtonText, { color: theme.colors.onPrimary }]}>Đã hiểu</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+      {/* Modal penalty AI */}
+      {aiWarningModal && aiWarningModal.show && (
+        <Modal visible transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContainer, { alignItems: 'center', backgroundColor: theme.colors.card }]}> 
+              <View style={[styles.warningIcon, { borderWidth: 2, borderColor: theme.colors.error, backgroundColor: theme.colors.error + '10' }]}> 
+                <MaterialIcons name="visibility-off" size={40} color={theme.colors.error} />
+              </View>
+              <Text style={[styles.modalTitle, { color: theme.colors.error, fontWeight: 'bold' }]}>AI Detection Warning</Text>
+              <Text style={[styles.modalText, { color: theme.colors.text, textAlign: 'center', marginBottom: 8 }]}>Bạn đã vắng mặt trước camera: {Math.floor(aiWarningModal.duration / 60)} phút {aiWarningModal.duration % 60} giây</Text>
+              <Text style={[styles.modalText, { color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 16 }]}>Vui lòng quay lại vị trí học để tránh bị phạt thêm.</Text>
             </View>
           </View>
         </Modal>

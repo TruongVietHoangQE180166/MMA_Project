@@ -15,6 +15,7 @@
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
+    "@react-native-community/netinfo": "11.4.1",
     "@react-native/debugger-frontend": "^0.79.3",
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
@@ -22,7 +23,9 @@
     "axios": "^1.10.0",
     "expo": "53.0.19",
     "expo-blur": "~14.1.5",
+    "expo-camera": "~16.1.10",
     "expo-constants": "~17.1.6",
+    "expo-file-system": "~18.1.11",
     "expo-font": "~13.3.1",
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.3.2",
@@ -51,10 +54,10 @@
     "react-native-svg": "15.11.2",
     "react-native-toast-message": "^2.3.0",
     "react-native-vector-icons": "^10.2.0",
+    "react-native-vision-camera": "^4.7.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "zustand": "^5.0.5",
-    "@react-native-community/netinfo": "11.4.1"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
