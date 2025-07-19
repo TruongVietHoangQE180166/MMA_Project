@@ -3,6 +3,7 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { ThemeProvider } from '../contexts/ThemeContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -23,13 +24,15 @@ export default function RootLayout() {
   }
 
   return (
-    <ErrorBoundary>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(user)" />
-        <Stack.Screen name="(admin)" />
-      </Stack>
-    </ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(user)" />
+          <Stack.Screen name="(admin)" />
+        </Stack>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }

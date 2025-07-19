@@ -193,7 +193,7 @@ export const sessionApi = {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({ ...body, aiEnabled: false }),
+        body: JSON.stringify(body), // giữ nguyên giá trị aiEnabled truyền vào
         signal: controller.signal,
       });
       clearTimeout(timeoutId);

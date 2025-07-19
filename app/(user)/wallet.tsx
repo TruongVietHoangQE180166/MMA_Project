@@ -60,6 +60,7 @@ const FinanceScreen = () => {
   );
 
   useEffect(() => {
+    console.log("payment result: ", paymentResult)
     if (
       paymentResult &&
       paymentResult.isSuccess &&
@@ -71,6 +72,7 @@ const FinanceScreen = () => {
   }, [paymentResult]);
 
   useEffect(() => {
+    console.log("confirm result; ", confirmResult)
     if (
       confirmResult &&
       confirmResult.isSuccess &&
@@ -383,6 +385,7 @@ const FinanceScreen = () => {
                   <Image
                     source={{ uri: (paymentResult.data as any).qrUrl }}
                     style={styles.qrImage}
+                    onError={e => console.log('Image load error:', e.nativeEvent)}
                   />
                 )
               )}

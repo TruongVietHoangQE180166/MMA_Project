@@ -18,6 +18,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSessionStore } from "../../store/sessionStore";
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCameraPermissions } from 'expo-camera';
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -54,7 +55,9 @@ export default function CreateSession() {
   const styles = createStyles(theme);
   const [hours, setHours] = useState(1);
   const [minutes, setMinutes] = useState(0);
-  const [cameraAI, setCameraAI] = useState(true);
+  const [cameraAI, setCameraAI] = useState(false); // Mặc định là false
+  const [permission, requestPermission] = useCameraPermissions();
+  const [showCameraModal, setShowCameraModal] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]);
   const [customSubject, setCustomSubject] = useState("");
   const [customSubjectError, setCustomSubjectError] = useState("");
@@ -101,7 +104,7 @@ export default function CreateSession() {
       const res = await createSession({
         subject: subjectName,
         durationMinutes: totalMinutes,
-        aiEnabled: false,
+        aiEnabled: cameraAI, // truyền đúng trạng thái
       });
       console.log('Create session response:', res);
       if (res && res.isSuccess && res.data && typeof res.data === 'object' && Object.keys(res.data).length > 0) {
@@ -117,11 +120,21 @@ export default function CreateSession() {
           subject: subjectName,
           sessionKey,
           sessionId,
+          aiEnabled: cameraAI, // Lưu trạng thái AI camera
         };
         await AsyncStorage.setItem(
           "CURRENT_STUDY_SESSION",
           JSON.stringify(sessionData)
         );
+        console.log('DEBUG: cameraAI', cameraAI);
+        console.log('DEBUG: router.push params', {
+          duration: totalMinutes.toString(),
+          subject: sessionData.subject,
+          sessionKey,
+          sessionId,
+          isNewSession: 'true',
+          aiEnabled: cameraAI.toString(),
+        });
         router.push({
           pathname: "/(user)/StudySession",
           params: {
@@ -130,6 +143,7 @@ export default function CreateSession() {
             sessionKey,
             sessionId,
             isNewSession: 'true',
+            aiEnabled: cameraAI.toString(),
           },
         });
       } else {
@@ -494,7 +508,24 @@ export default function CreateSession() {
               </View>
               <Switch
                 value={cameraAI}
-                onValueChange={setCameraAI}
+                onValueChange={async (value) => {
+                  if (value) {
+                    // Nếu bật, kiểm tra quyền
+                    if (!permission || !permission.granted) {
+                      const perm = await requestPermission();
+                      if (perm.granted) {
+                        setCameraAI(true);
+                      } else {
+                        setCameraAI(false);
+                        setShowCameraModal(true);
+                      }
+                    } else {
+                      setCameraAI(true);
+                    }
+                  } else {
+                    setCameraAI(false);
+                  }
+                }}
                 trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
                 thumbColor={theme.colors.surface}
                 style={styles.switch}
@@ -607,6 +638,24 @@ export default function CreateSession() {
                 <Text style={{ color: theme.colors.onPrimary, fontWeight: 'bold' }}>Start</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+      {/* Modal thông báo quyền camera */}
+      <Modal visible={showCameraModal} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.overlay }}>
+          <View style={{ backgroundColor: theme.colors.card, borderRadius: 16, padding: 24, alignItems: 'center', width: 300 }}>
+            <MaterialCommunityIcons name="camera-off" size={40} color={theme.colors.error} style={{ marginBottom: 12 }} />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, color: theme.colors.error, textAlign: 'center' }}>Camera Permission Required</Text>
+            <Text style={{ fontSize: 15, color: theme.colors.text, marginBottom: 16, textAlign: 'center' }}>
+              You must grant camera permission to enable AI Camera Monitor. Please allow camera access in your device settings.
+            </Text>
+            <TouchableOpacity
+              style={[styles.startButton, { backgroundColor: theme.colors.primary, width: '100%' }]}
+              onPress={() => setShowCameraModal(false)}
+            >
+              <Text style={{ color: theme.colors.onPrimary, fontWeight: 'bold', textAlign: 'center' }}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
