@@ -16,10 +16,13 @@ import {
   TextInput,
   Alert,
   SafeAreaView,
+  Animated,
 } from "react-native";
 import { usePaymentStore } from "../../store/paymentStore";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from '../../contexts/ThemeContext';
+import { checkInUtils, CheckInData } from '../../utils/checkIn';
+//import { DebugCheckIn } from '../../components/DebugCheckIn';
 
 const { width } = Dimensions.get("window");
 
@@ -32,6 +35,14 @@ const FinanceScreen = () => {
   const [inputError, setInputError] = useState("");
   const [amountInput, setAmountInput] = useState("");
 
+  // Check-in states
+  const [checkInData, setCheckInData] = useState<CheckInData | null>(null);
+  const [checkInLoading, setCheckInLoading] = useState(false);
+  const [showCheckInSuccessModal, setShowCheckInSuccessModal] = useState(false);
+  const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+  const [fireScale] = useState(new Animated.Value(1));
+  const [showStreakResetModal, setShowStreakResetModal] = useState(false);
+
   const {
     paymentResult,
     confirmResult,
@@ -43,6 +54,7 @@ const FinanceScreen = () => {
     createPayment,
     confirmPayment,
     getPoint,
+    addPoint,
     getPaymentHistory,
     reset,
   } = usePaymentStore();
@@ -56,8 +68,65 @@ const FinanceScreen = () => {
       getPaymentHistory({ page: 1, size: pageSize });
       setCurrentPage(1);
       reset();
+      loadCheckInData();
     }, [])
   );
+
+  // Load check-in data
+  const loadCheckInData = async () => {
+    try {
+      const data = await checkInUtils.getCheckInData();
+      setCheckInData(data);
+      const checkedIn = await checkInUtils.hasCheckedInToday();
+      setHasCheckedInToday(checkedIn);
+    } catch (error) {
+      console.error('Error loading check-in data:', error);
+    }
+  };
+
+  // Handle check-in
+  const handleCheckIn = async () => {
+    try {
+      console.log('🎯 Wallet - Starting check-in process');
+      setCheckInLoading(true);
+      console.log('📅 Performing check-in...');
+      const prevStreak = checkInData?.currentStreak || 0;
+      const newCheckInData = await checkInUtils.performCheckIn();
+      console.log('✅ Check-in completed:', newCheckInData);
+      setCheckInData(newCheckInData);
+      setHasCheckedInToday(true);
+      // Nếu streak bị reset về 1 và trước đó streak > 1 thì hiển thị modal
+      if (prevStreak > 1 && newCheckInData.currentStreak === 1) {
+        setShowStreakResetModal(true);
+      }
+      
+      // Animate fire icon when check-in successful
+      Animated.sequence([
+        Animated.timing(fireScale, {
+          toValue: 1.5,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fireScale, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      
+      console.log('💰 Calling addPoint API with 1 point...');
+      // Cộng 1 điểm thông qua API
+      await addPoint(1);
+      console.log('✅ addPoint API completed');
+      
+      setShowCheckInSuccessModal(true);
+      setCheckInLoading(false);
+    } catch (error) {
+      console.error('❌ Wallet check-in error:', error);
+      console.error('Error performing check-in:', error);
+      setCheckInLoading(false);
+    }
+  };
 
   useEffect(() => {
     console.log("payment result: ", paymentResult)
@@ -192,7 +261,7 @@ const FinanceScreen = () => {
           <View style={styles.balanceHeader}>
             <Text style={styles.balanceLabel}>Your Study-point</Text>
             <View style={styles.walletIconContainer}>
-              <Feather name="star" size={20} color={theme.colors.primary} />
+              <Feather name="star" size={28} color={theme.colors.primary} />
             </View>
           </View>
           <Text style={styles.balanceAmount}>{point?.toLocaleString()} points</Text>
@@ -201,6 +270,75 @@ const FinanceScreen = () => {
               ≈ {(point * 1000)?.toLocaleString()} VND
             </Text>
           </View>
+        </View>
+
+        {/* Check-in Section */}
+        <View style={styles.checkInSection}>
+          <View style={styles.checkInHeader}>
+            <Text style={styles.checkInTitle}>Daily Check-in</Text>
+            <View style={styles.walletIconContainer}>
+              <Feather name="gift" size={28} color={theme.colors.primary} />
+            </View>
+          </View>
+          
+          {/* Fire Icon Center */}
+          <View style={styles.fireIconContainer}>
+            <Animated.View style={{ transform: [{ scale: fireScale }] }}>
+              <MaterialCommunityIcons 
+                name="fire" 
+                size={64} 
+                color={hasCheckedInToday ? "#FF6B35" : theme.colors.textSecondary} 
+              />
+            </Animated.View>
+            {checkInData && checkInData.currentStreak > 0 && (
+              <Text style={[
+                styles.streakText,
+                { color: hasCheckedInToday ? "#FF6B35" : theme.colors.textSecondary }
+              ]}>
+                {checkInData.currentStreak} days
+              </Text>
+            )}
+          </View>
+          
+          {checkInData && (
+            <View style={styles.checkInStats}>
+              <View style={styles.checkInStatItem}>
+                <Text style={styles.checkInStatValue}>{checkInData.longestStreak}</Text>
+                <Text style={styles.checkInStatLabel}>Longest Streak</Text>
+              </View>
+              <View style={styles.checkInStatItem}>
+                <Text style={styles.checkInStatValue}>{checkInData.totalCheckIns}</Text>
+                <Text style={styles.checkInStatLabel}>Total Check-ins</Text>
+              </View>
+            </View>
+          )}
+          
+          <TouchableOpacity
+            style={[
+              styles.checkInButton,
+              checkInLoading && styles.checkInButtonDisabled,
+              hasCheckedInToday && styles.checkInButtonDisabled
+            ]}
+            onPress={handleCheckIn}
+            disabled={checkInLoading || hasCheckedInToday}
+          >
+            {checkInLoading ? (
+              <ActivityIndicator color={theme.colors.onPrimary} />
+            ) : (
+              <View style={styles.checkInButtonContent}>
+                <MaterialCommunityIcons 
+                  name="calendar-check" 
+                  size={20} 
+                  color={hasCheckedInToday ? theme.colors.textSecondary : theme.colors.onPrimary} 
+                />
+                <Text style={[styles.checkInButtonText, { color: hasCheckedInToday ? theme.colors.textSecondary : theme.colors.onPrimary }] }>
+                  {hasCheckedInToday
+                    ? "Already Checked-in" 
+                    : "Check-in Today"}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Deposit Button */}
@@ -432,6 +570,63 @@ const FinanceScreen = () => {
           </View>
         </View>
       </Modal>
+      
+      {/* Check-in Success Modal */}
+      <Modal visible={showCheckInSuccessModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.checkInSuccessModalContainer}>
+            <View style={styles.checkInSuccessModalHeader}>
+              <MaterialCommunityIcons 
+                name="check-circle" 
+                size={64} 
+                color={theme.colors.success} 
+              />
+              <Text style={styles.checkInSuccessModalTitle}>Check-in Successful!</Text>
+              <Text style={styles.checkInSuccessModalSubtitle}>
+                You earned 1 study point for today's check-in!
+              </Text>
+            </View>
+            
+            {checkInData && (
+              <View style={styles.checkInSuccessStats}>
+                <Text style={styles.checkInSuccessStatText}>
+                  Current Streak: {checkInData.currentStreak} days
+                </Text>
+                <Text style={styles.checkInSuccessStatText}>
+                  Total Check-ins: {checkInData.totalCheckIns}
+                </Text>
+              </View>
+            )}
+            
+            <TouchableOpacity
+              style={styles.checkInSuccessButton}
+              onPress={() => setShowCheckInSuccessModal(false)}
+            >
+              <Text style={styles.checkInSuccessButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Streak Reset Modal */}
+      <Modal visible={showStreakResetModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.streakResetModalContainer}>
+            <MaterialCommunityIcons name="fire" size={48} color={theme.colors.error} style={{ marginBottom: 12 }} />
+            <Text style={styles.streakResetTitle}>Bạn đã bỏ lỡ chuỗi streak!</Text>
+            <Text style={styles.streakResetSubtitle}>Chuỗi streak của bạn đã được đặt lại về 1.</Text>
+            <TouchableOpacity
+              style={styles.streakResetButton}
+              onPress={() => setShowStreakResetModal(false)}
+            >
+              <Text style={styles.streakResetButtonText}>Đã hiểu</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      
+      {/* Debug Component - Commented out for now */}
+    {/*<DebugCheckIn />*/}
     </SafeAreaView>
   );
 };
@@ -485,9 +680,9 @@ const createStyles = (theme: any) => StyleSheet.create({
     marginBottom: 16,
   },
   balanceLabel: {
-    fontSize: 15,
+    fontSize: 20,
     color: theme.colors.textSecondary,
-    fontWeight: "500",
+    fontWeight: "700",
   },
   walletIconContainer: {
     backgroundColor: theme.colors.surfaceVariant,
@@ -857,6 +1052,161 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: theme.colors.textSecondary,
     fontSize: 14,
     fontWeight: "500",
+  },
+  checkInSection: {
+    backgroundColor: theme.colors.card,
+    marginTop: 8,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.outline,
+  },
+  checkInHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  checkInTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: theme.colors.textSecondary,
+  },
+  checkInStats: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 20,
+  },
+  checkInStatItem: {
+    alignItems: "center",
+  },
+  checkInStatValue: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: theme.colors.primary,
+    marginBottom: 4,
+  },
+  checkInStatLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: "500",
+  },
+  checkInButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+  },
+  checkInButtonDisabled: {
+    opacity: 0.7,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.outline,
+  },
+  checkInButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  checkInButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+    // Màu sẽ được set động trong JSX
+  },
+  checkInSuccessModalContainer: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 24,
+    padding: 24,
+    width: width - 40,
+    maxWidth: 380,
+    alignItems: "center",
+  },
+  checkInSuccessModalHeader: {
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  checkInSuccessModalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.colors.text,
+    marginBottom: 8,
+  },
+  checkInSuccessModalSubtitle: {
+    fontSize: 16,
+    color: theme.colors.primary,
+    fontWeight: "600",
+  },
+  checkInSuccessStats: {
+    marginBottom: 24,
+  },
+  checkInSuccessStatText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    marginBottom: 4,
+  },
+  checkInSuccessButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+  },
+  checkInSuccessButtonText: {
+    color: theme.colors.onPrimary,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  streakContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  streakText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
+  fireIconContainer: {
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  streakResetModalContainer: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 24,
+    padding: 24,
+    width: 320,
+    alignItems: 'center',
+  },
+  streakResetTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.error,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  streakResetSubtitle: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  streakResetButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+  },
+  streakResetButtonText: {
+    color: theme.colors.onPrimary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

@@ -130,3 +130,16 @@ export interface PaymentHistoryResponse {
   errors: PaymentError[];
   data: PaymentHistoryData | {};
 }
+
+// Request cho PUT /api/point/add-point
+export interface AddPointRequest {
+  point: number;
+}
+
+// Response cho PUT /api/point/add-point
+export interface AddPointResponse {
+  isSuccess: boolean;
+  message: Message;
+  errors: PaymentError[];
+  data: PointData | {};
+}

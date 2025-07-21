@@ -439,7 +439,7 @@ export default function Login() {
         {/* onboarding button*/}
         <TouchableOpacity style={styles.onBoardingButton} onPress={() => router.push('/onboarding')}>
           <MaterialIcons
-            name="info"
+            name="play-circle-outline"
             style={styles.onBoardingIcon}
           />
         </TouchableOpacity>

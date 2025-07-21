@@ -27,4 +27,5 @@ export const navigate = {
   back: () => router.back(),
   toCreateSessionStudy: () => router.push("/(user)/create-session-study" as any),
   toStudySession: () => router.push("/(user)/StudySession" as any),
+  toWallet: () => router.push("/(user)/wallet" as any),
 };

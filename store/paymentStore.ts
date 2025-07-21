@@ -14,6 +14,7 @@ interface PaymentStoreState {
   createPayment: (amount: number) => Promise<void>;
   confirmPayment: () => Promise<void>;
   getPoint: () => Promise<void>;
+  addPoint: (point: number) => Promise<void>;
   getPaymentHistory: (query?: { page?: number; size?: number; field?: string; direction?: string }) => Promise<void>;
   reset: () => void;
 }
@@ -61,6 +62,29 @@ export const usePaymentStore = create<PaymentStoreState>((set) => ({
       set({ point: result.data && typeof result.data.point === 'number' ? result.data.point : 0, loading: false });
     } catch (error: any) {
       set({ error: error.message || "Get point failed", loading: false });
+    }
+  },
+
+  addPoint: async (point: number) => {
+    console.log('💰 Store - addPoint called with:', point);
+    set({ loading: true, error: null });
+    try {
+      const token = await AsyncStorage.getItem("token");
+      console.log('🔑 Token from storage:', token ? 'Found' : 'Not found');
+      if (!token) throw new Error("No token available");
+      console.log('📞 Calling API addPoint...');
+      const result = await paymentApi.addPoint(token, { point });
+      console.log('📥 API Result:', result);
+      if (result.isSuccess && result.data && typeof (result.data as any).point === 'number') {
+        console.log('✅ Updating point to:', (result.data as any).point);
+        set({ point: (result.data as any).point, loading: false });
+      } else {
+        console.log('⚠️ API success but no point data');
+        set({ loading: false });
+      }
+    } catch (error: any) {
+      console.error('❌ Store addPoint error:', error);
+      set({ error: error.message || "Add point failed", loading: false });
     }
   },
 

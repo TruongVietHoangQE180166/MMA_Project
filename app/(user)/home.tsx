@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Dimensions,
   Image,
@@ -9,6 +9,9 @@ import {
   TouchableOpacity,
   View,
   Animated,
+  Modal,
+  ActivityIndicator,
+  AppState,
 } from "react-native";
 // Fix: Use react-native-chart-kit instead of victory
 import { BarChart } from "react-native-chart-kit";
@@ -22,6 +25,8 @@ import { useSessionStore } from "../../store/sessionStore";
 import { usePaymentStore } from "../../store/paymentStore";
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
+import { checkInUtils, CheckInData } from '../../utils/checkIn';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Add type definitions
 interface ChartDataPoint {
@@ -36,8 +41,13 @@ export default function UserHome() {
   const { stasiscHoursRule, getStasiscHoursRule, weeklySession, getWeeklySession } = useSessionStore();
   const { point, getPoint } = usePaymentStore();
   
+  // Check-in notification state
+  const [showCheckInNotification, setShowCheckInNotification] = useState(false);
+  const [hasShownNotificationThisSession, setHasShownNotificationThisSession] = useState(false);
+  
   const styles = createStyles(theme);
 
+  // Load data mỗi khi focus vào home
   useFocusEffect(
     React.useCallback(() => {
       getStasiscHoursRule();
@@ -45,6 +55,71 @@ export default function UserHome() {
       getWeeklySession();
     }, [])
   );
+
+  // Check check-in chỉ khi app mở (component mount)
+  useEffect(() => {
+    // Chỉ check nếu chưa hiển thị notification trong session này
+    if (!hasShownNotificationThisSession) {
+      checkDailyCheckIn();
+    }
+  }, []); // Empty dependency array = chỉ chạy 1 lần khi mount
+
+  // Kiểm tra check-in hàng ngày
+  const checkDailyCheckIn = async () => {
+    try {
+      const hasCheckedIn = await checkInUtils.hasCheckedInToday();
+      
+      if (!hasCheckedIn && !hasShownNotificationThisSession) {
+        setShowCheckInNotification(true);
+        setHasShownNotificationThisSession(true);
+      }
+    } catch (error) {
+      console.error('Error checking daily check-in:', error);
+    }
+  };
+
+  // Reset notification state khi app restart
+  useEffect(() => {
+    // Reset khi app state thay đổi (app vào background/foreground)
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'active') {
+        // App trở lại foreground, reset notification state
+        setHasShownNotificationThisSession(false);
+        // Check lại check-in khi app trở lại foreground (sau khi reset)
+        setTimeout(() => {
+          checkDailyCheckIn();
+        }, 100);
+      }
+    };
+    
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    
+    return () => {
+      subscription?.remove();
+    };
+  }, []);
+
+  // Animation for play icon scale
+  const playScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const animate = () => {
+      Animated.sequence([
+        Animated.timing(playScale, {
+          toValue: 1.25,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(playScale, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]).start(() => animate());
+    };
+    animate();
+    return () => playScale.stopAnimation();
+  }, [playScale]);
 
   const totalHours = stasiscHoursRule?.totalHours || 0;
   const totalRules = stasiscHoursRule?.totalRules || 0;
@@ -82,28 +157,6 @@ export default function UserHome() {
     useShadowColorFromDataset: false,
     decimalPlaces: 1,
   };
-
-  // Animation for play icon scale
-  const playScale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    const animate = () => {
-      Animated.sequence([
-        Animated.timing(playScale, {
-          toValue: 1.25,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(playScale, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-      ]).start(() => animate());
-    };
-    animate();
-    return () => playScale.stopAnimation();
-  }, [playScale]);
 
   const maxValue = Math.max(...chartDataValues, 1);
 
@@ -242,6 +295,41 @@ export default function UserHome() {
           </View>
         </View>
       </ScrollView>
+      
+      {/* Check-in Notification */}
+      {showCheckInNotification && (
+        <View style={styles.checkInNotificationContainer}>
+          <View style={styles.checkInNotificationContent}>
+            <TouchableOpacity
+              style={styles.closeNotificationButton}
+              onPress={() => setShowCheckInNotification(false)}
+            >
+              <MaterialCommunityIcons 
+                name="close" 
+                size={24} 
+                color={theme.colors.textSecondary} 
+              />
+            </TouchableOpacity>
+            <MaterialCommunityIcons
+              name="calendar-check"
+              size={48}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.checkInNotificationTitle}>Daily Check-in</Text>
+            <Text style={styles.checkInNotificationSubtitle}>
+              Complete your daily check-in to earn 1 study point!
+            </Text>
+            <TouchableOpacity
+              style={styles.checkInNotificationButton}
+              onPress={() => navigate.toWallet()}
+            >
+              <Text style={styles.checkInNotificationButtonText}>
+                Go to Wallet
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -407,5 +495,59 @@ const createStyles = (theme: any) => StyleSheet.create({
     overflow: "hidden",
     backgroundColor: theme.colors.card,
     paddingHorizontal: 8,
+  },
+  checkInNotificationContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    zIndex: 1000,
+  },
+  checkInNotificationContent: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 20,
+    padding: 24,
+    width: "80%",
+    alignItems: "center",
+    shadowColor: theme.colors.shadow,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  closeNotificationButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 1,
+  },
+  checkInNotificationTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginTop: 12,
+    textAlign: "center",
+  },
+  checkInNotificationSubtitle: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+    textAlign: "center",
+  },
+  checkInNotificationButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    backgroundColor: theme.colors.primary,
+    marginTop: 20,
+  },
+  checkInNotificationButtonText: {
+    fontSize: 16,
+    color: theme.colors.onPrimary,
+    fontWeight: "600",
   },
 });

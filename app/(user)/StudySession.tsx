@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
-import { View, Text, Button, Modal, AppState, BackHandler, StyleSheet, TouchableOpacity, Platform, ScrollView, Dimensions, ActivityIndicator } from "react-native";
+import { View, Text, Button, Modal, AppState, BackHandler, StyleSheet, TouchableOpacity, Platform, ScrollView, Dimensions, ActivityIndicator, Animated, StatusBar } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { useKeepAwake } from "expo-keep-awake";
@@ -11,6 +11,7 @@ import { useSessionStore } from "../../store/sessionStore";
 import { useTheme } from '../../contexts/ThemeContext';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { AppStateStatus } from 'react-native';
+import { PanResponder } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,10 +22,59 @@ interface StudySessionStats {
   violationCount: number;
   completedPercent: number;
   totalStudyTime: number;
-  backgroundLogs: { time: string; duration: number }[]; 
+  backgroundLogs: { time: string; duration: number; ai?: boolean }[]; 
 }
 
 export default function StudySession() {
+  // --- Draggable Camera Preview Hooks: luôn ở đầu function component ---
+  // Constants for camera preview dragging
+  const CAMERA_WIDTH = 120;
+  const CAMERA_HEIGHT = 90;
+  const BUTTON_HEIGHT = 40; // Height of visibility toggle button
+  const TOTAL_HEIGHT = CAMERA_HEIGHT + BUTTON_HEIGHT + 8; // 8px margin
+  const CAMERA_MARGIN = 32;
+  const CAMERA_BORDER = 2; // borderWidth của CameraView
+  const STATUSBAR_HEIGHT = Platform.OS === 'android' ? (StatusBar.currentHeight || 32) : 32;
+  const minX = CAMERA_MARGIN;
+  const maxX = width - CAMERA_WIDTH - CAMERA_MARGIN;
+  const minY = CAMERA_MARGIN + STATUSBAR_HEIGHT;
+  const maxY = height - TOTAL_HEIGHT - CAMERA_MARGIN;
+  const initialX = maxX;
+  const initialY = minY;
+  const pan = useRef(new Animated.ValueXY({ x: initialX, y: initialY })).current;
+  
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        pan.setOffset({ x: (pan.x as any)._value, y: (pan.y as any)._value });
+      },
+      onPanResponderMove: Animated.event([
+        null,
+        { dx: pan.x, dy: pan.y },
+      ], { useNativeDriver: false }),
+      onPanResponderRelease: (_, gestureState) => {
+        pan.flattenOffset();
+        
+        // Get current position
+        const currentX = (pan.x as any)._value;
+        const currentY = (pan.y as any)._value;
+        
+        // Sử dụng lại minX, maxX, minY, maxY đã tính ở trên để đảm bảo margin lớn và tránh status bar
+        let newX = Math.max(minX, Math.min(maxX, currentX));
+        let newY = Math.max(minY, Math.min(maxY, currentY));
+
+        // Animate to final position (snap to edge if out of bounds)
+        Animated.spring(pan, {
+          toValue: { x: newX, y: newY },
+          useNativeDriver: false,
+          tension: 100,
+          friction: 8,
+        }).start();
+      },
+    })
+  ).current;
   useKeepAwake();
   const router = useRouter();
   const { theme, isDark } = useTheme();
@@ -87,6 +137,54 @@ export default function StudySession() {
   const [aiPresenceWarningModal, setAiPresenceWarningModal] = useState(false);
   const [aiWarningModal, setAiWarningModal] = useState<{ show: boolean; duration: number } | null>(null);
   const [showCameraPreview, setShowCameraPreview] = useState(false);
+
+  // Animation values
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const fadeInAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+
+  // Pulse animation for timer circle
+  useEffect(() => {
+    const createPulseAnimation = () => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    };
+    
+    const pulseAnimation = createPulseAnimation();
+    pulseAnimation.start();
+    
+    return () => pulseAnimation.stop();
+  }, [pulseAnim]);
+
+  // Fade in animation on mount
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeInAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeInAnim, scaleAnim]);
 
   // Khi mount, luôn lấy sessionId từ params nếu có, nếu không thì lấy từ AsyncStorage
   useEffect(() => {
@@ -492,6 +590,7 @@ export default function StudySession() {
     let captureInterval: any = null;
     let lastAbsentStart: number | null = null;
     let lastAbsentTime: number = 0;
+    let isAwaitingResponse = false;
 
     // Hàm gửi penalty khi quay lại hoặc end session
     const sendPenaltyIfNeeded = async () => {
@@ -502,11 +601,20 @@ export default function StudySession() {
           const penaltyParams = { sessionId, duration: penaltyMinutes };
           await applyPenalty(penaltyParams);
         }
+        // Ghi log vắng mặt AI vào App Exit History
+        setStats((s) => ({
+          ...s,
+          backgroundLogs: [
+            ...s.backgroundLogs,
+            { time: new Date().toLocaleTimeString(), duration: lastAbsentTime, ai: true },
+          ],
+        }));
       }
     };
 
     // Nhận kết quả từ AI server
     aiSocket.onmessage = (event: any) => {
+      isAwaitingResponse = false;
       console.log('[AI SOCKET] Response from AI server:', event.data);
       const message = event.data;
       if (message.includes('Có người')) {
@@ -531,12 +639,16 @@ export default function StudySession() {
 
     // Chụp ảnh định kỳ
     captureInterval = setInterval(async () => {
-      if (cameraRef.current && aiSocket && aiSocket.readyState === WebSocket.OPEN) {
+      if (
+        cameraRef.current &&
+        aiSocket &&
+        aiSocket.readyState === WebSocket.OPEN &&
+        !isAwaitingResponse
+      ) {
         try {
           const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.5, skipProcessing: true });
           if (photo.base64) {
-            console.log('[AI SOCKET] Sending image to AI server (base64 length):', photo.base64.length);
-            console.log('[AI SOCKET] Base64 full:', photo.base64);
+            isAwaitingResponse = true;
             aiSocket.send(photo.base64);
           }
         } catch (err) {
@@ -651,6 +763,17 @@ export default function StudySession() {
   // Calculate progress
   const progressPercent = Math.max(0, Math.min(100, ((totalStudyTime - remaining) / totalStudyTime) * 100));
 
+  // Progress bar animation
+  useEffect(() => {
+    if (progressPercent !== undefined) {
+      Animated.timing(progressAnim, {
+        toValue: progressPercent / 100,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [progressPercent, progressAnim]);
+
   // Tính màu cho timer theo thời gian còn lại
   let timerColor = theme.colors.primary;
   if (remaining <= 60) timerColor = theme.colors.error;
@@ -680,56 +803,99 @@ export default function StudySession() {
     <View style={styles.container}>
       {/* Camera Preview */}
       {hasAIEnabled && permission && permission.granted && (
-        <View style={{ position: 'absolute', top: 80, right: 20, zIndex: 1000 }}>
-          <TouchableOpacity
-            style={{ backgroundColor: theme.colors.primary, borderRadius: 20, padding: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}
-            onPress={() => setShowCameraPreview?.((v: boolean) => !v)}
-          >
-            <MaterialIcons name={showCameraPreview ? 'visibility-off' : 'visibility'} size={20} color={theme.colors.onPrimary} />
-          </TouchableOpacity>
-          {showCameraPreview && (
-            <CameraView
-              key={sessionKeyString}
-              style={{ width: 120, height: 90, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.card, borderWidth: 2, borderColor: theme.colors.primary }}
-              facing="front"
-              ref={cameraRef}
-            />
-          )}
-          {!showCameraPreview && (
-            <CameraView
-              key={sessionKeyString}
-              style={{ opacity: 0, width: 1, height: 1, position: 'absolute', zIndex: -1 }}
-              facing="front"
-              ref={cameraRef}
-            />
-          )}
-        </View>
+        <Animated.View
+          style={{ position: 'absolute', top: 0, left: 0, zIndex: 1000, transform: pan.getTranslateTransform() }}
+          {...panResponder.panHandlers}
+        >
+          <View style={{ alignItems: 'center' }}>
+            <TouchableOpacity
+              style={{ width: CAMERA_WIDTH, backgroundColor: theme.colors.primary, borderRadius: 20, padding: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}
+              onPress={() => setShowCameraPreview?.((v: boolean) => !v)}
+            >
+              <MaterialIcons name={showCameraPreview ? 'visibility-off' : 'visibility'} size={20} color={theme.colors.onPrimary} />
+            </TouchableOpacity>
+            {showCameraPreview && (
+              <CameraView
+                key={sessionKeyString}
+                style={{ width: CAMERA_WIDTH, height: CAMERA_HEIGHT, borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.card, borderWidth: 2, borderColor: theme.colors.primary }}
+                facing="front"
+                ref={cameraRef}
+              />
+            )}
+            {!showCameraPreview && (
+              <CameraView
+                key={sessionKeyString}
+                style={{ opacity: 0, width: 1, height: 1, position: 'absolute', zIndex: -1 }}
+                facing="front"
+                ref={cameraRef}
+              />
+            )}
+          </View>
+        </Animated.View>
       )}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-      <Text style={styles.title}>{subject}</Text>
-          <Text style={styles.subtitle}>Study Session</Text>
-        </View>
-
-        {/* Timer Circle */}
-        <View style={styles.timerContainer}>
-          <View style={[styles.timerCircle, { borderColor: timerColor, shadowColor: timerColor, backgroundColor: theme.colors.card }]}> 
-            <View style={[styles.timerInnerCircle, { borderColor: timerColor, backgroundColor: theme.colors.background }]}> 
-              <Text style={[styles.timerText, { color: timerColor }]}> 
-        {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
-      </Text>
-              <Text style={[styles.timerLabel, { color: timerColor }]}>{'remaining'}</Text>
+        <Animated.View style={[styles.header, { opacity: fadeInAnim, transform: [{ scale: scaleAnim }] }]}> 
+          <LinearGradient
+            colors={[theme.colors.primary + '40', theme.colors.primary + '20', theme.colors.primary + '05']}
+            style={styles.titleGradientBg}
+          >
+            <Text style={[styles.title, { color: theme.colors.primary, fontWeight: 'bold' }]}>{subject}</Text>
+            <View style={styles.subtitleContainer}>
+              <MaterialIcons name="timer" size={16} color={theme.colors.primary} />
+              <Text style={[styles.subtitle, { color: theme.colors.primary, fontWeight: '600' }]}>Study Session</Text>
             </View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* Enhanced Timer Circle (no outer gradient) */}
+        <Animated.View style={[styles.timerContainer, { transform: [{ scale: pulseAnim }] }]}> 
+          <View style={[styles.timerCircle, { borderColor: timerColor, shadowColor: timerColor }]}> 
+            <LinearGradient
+              colors={[theme.colors.card, theme.colors.background]}
+              style={styles.timerInnerGradient}
+            >
+              <View style={[styles.timerInnerCircle, { borderColor: timerColor }]}> 
+                <Text style={[styles.timerText, { color: timerColor }]}> 
+                  {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}
+                </Text>
+                <View style={styles.timerLabelContainer}>
+                  <MaterialIcons name="schedule" size={14} color={timerColor} />
+                  <Text style={[styles.timerLabel, { color: timerColor }]}>remaining</Text>
+                </View>
+              </View>
+            </LinearGradient>
           </View>
           
-          {/* Progress Bar */}
+          {/* Enhanced Progress Bar */}
           <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progressPercent}%`, backgroundColor: timerColor }]} />
+            <View style={styles.progressWrapper}>
+              <View style={styles.progressBar}>
+                <Animated.View style={[
+                  styles.progressFill, 
+                  { 
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%']
+                    }),
+                    backgroundColor: timerColor 
+                  }
+                ]} />
+                <LinearGradient
+                  colors={[timerColor + '60', timerColor + '30', timerColor + '10']}
+                  style={[styles.progressGlow, { width: `${progressPercent}%` }]}
+                />
+              </View>
+              <View style={styles.progressLabels}>
+                <Text style={[styles.progressText, { color: timerColor }]}>
+                  {Math.round(progressPercent)}% completed
+                </Text>
+                <Text style={styles.progressSubtext}>
+                  {formatShortMinSec(totalStudyTime - remaining)} studied
+                </Text>
+              </View>
             </View>
-            <Text style={[styles.progressText, { color: timerColor }]}>{Math.round(progressPercent)}% completed</Text>
           </View>
-        </View>
+        </Animated.View>
 
         {/* Stats Cards */}
         <View style={styles.statsContainer}>
@@ -765,11 +931,25 @@ export default function StudySession() {
                       <Text style={styles.logTime}>{log.time}</Text>
                       <Text style={styles.logDuration}>{formatShortMinSec(log.duration)}</Text>
                     </View>
-                    <MaterialIcons 
-                      name={log.duration > 60 ? "warning" : "info"} 
-                      size={16} 
-                      color={log.duration > 60 ? theme.colors.error : theme.colors.primary} 
-                    />
+                    {log.ai ? (
+                      <>
+                        <MaterialIcons
+                          name="face"
+                          size={16}
+                          color={theme.colors.warning}
+                          style={{ marginLeft: 4 }}
+                        />
+                        <Text style={{ color: theme.colors.warning, fontSize: 10, marginLeft: 4 }}>
+                          AI: Absent
+                        </Text>
+                      </>
+                    ) : (
+                      <MaterialIcons 
+                        name={log.duration > 60 ? "warning" : "info"} 
+                        size={16} 
+                        color={log.duration > 60 ? theme.colors.error : theme.colors.primary} 
+                      />
+                    )}
                   </View>
                 ))}
               </ScrollView>
@@ -1458,5 +1638,61 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
+  },
+
+  // Enhanced UI styles
+  titleGradientBg: {
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  subtitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  timerGradientBg: {
+    borderRadius: 120,
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timerInnerGradient: {
+    borderRadius: 100,
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timerLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  progressWrapper: {
+    position: 'relative',
+    width: '100%',
+    alignItems: 'center',
+  },
+  progressGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    borderRadius: 4,
+    opacity: 0.3,
+  },
+  progressLabels: {
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  progressSubtext: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
+    fontWeight: '500',
   },
 });
